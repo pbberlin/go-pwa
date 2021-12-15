@@ -1,0 +1,8 @@
+https-server
+~*
+*.exe
+*.exe~
+
+static/**
+tmp/*
+tmp*
