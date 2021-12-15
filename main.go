@@ -54,15 +54,16 @@ func home(w http.ResponseWriter, r *http.Request) {
 		https://csp.withgoogle.com/docs/index.html
 		https://csp.withgoogle.com/docs/strict-csp.html#example
 
-		default-src     - https: http:
-		script-src      - 'nonce-{random}'  'unsafe-inline'  for old browsers
-		strict-dynamic  - 'script-xyz.js'  can load additional scripts via script elements
+		default-src     -  https: http:
+		script-src      - 'nonce-{random}'  'unsafe-inline'   - for old browsers
+		style-src-elem  - 'self' 'nonce-{random}'             - strangely, self is required
+		strict-dynamic  -  unused; 'script-xyz.js'can load additional scripts via script elements
 		object-src      -  sources for <object>, <embed>, <applet>
 		base-uri        - 'self' 'none' - for relative URLs
-		report-uri      - https://your-report-collector.example.com/
+		report-uri      -  https://your-report-collector.example.com/
 
 	*/
-	csp := fmt.Sprintf("default-src https:; script-src 'nonce-%d' 'unsafe-inline'; object-src 'none'; base-uri 'none';", cfg.Get().TS)
+	csp := fmt.Sprintf("default-src https:; script-src 'nonce-%d' 'unsafe-inline'; style-src-elem 'self' 'nonce-%d'; object-src 'none'; base-uri 'none';", cfg.Get().TS, cfg.Get().TS)
 	w.Header().Set("Content-Security-Policy", csp)
 	fmt.Fprintf(w, cfg.Get().HTML5, "Hello, TLS user", js, css, cnt.String())
 
