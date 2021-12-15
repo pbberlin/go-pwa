@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/zew/https-server/cfg"
 	"github.com/zew/https-server/gziphandler"
-	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -42,12 +40,7 @@ func redirectHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
-
-	cnt := &strings.Builder{}
-	fmt.Fprintf(cnt, "<p>Hello, TLS user </p>\n")
-	fmt.Fprintf(cnt, "<p>Your config: </p>\n")
-	fmt.Fprintf(cnt, "<pre id='tls-config'>%+v  </pre>\n", r.TLS)
+func renderScaffold(w http.ResponseWriter, title, desc string, cnt *strings.Builder) {
 
 	w.Header().Set("Content-Type", "text/html")
 	/*
@@ -63,13 +56,30 @@ func home(w http.ResponseWriter, r *http.Request) {
 		report-uri      -  https://your-report-collector.example.com/
 
 	*/
-	csp := fmt.Sprintf("default-src https:; script-src 'nonce-%d' 'unsafe-inline'; style-src-elem 'self' 'nonce-%d'; object-src 'none'; base-uri 'none';", cfg.Get().TS, cfg.Get().TS)
+	csp := ""
+	csp += fmt.Sprintf("default-src     https:; ")
+	csp += fmt.Sprintf("base-uri       'none'; ")
+	csp += fmt.Sprintf("object-src     'none'; ")
+	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.Get().TS)
+	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.Get().TS)
+	csp += fmt.Sprintf("worker-src      https://*/js/service-worker.js; ")
 	w.Header().Set("Content-Security-Policy", csp)
-	fmt.Fprintf(w, cfg.Get().HTML5, "Hello, TLS user", js, css, cnt.String())
+
+	fmt.Fprintf(w, cfg.Get().HTML5, title, desc, cfg.Get().JS, cfg.Get().CSS, cnt.String())
+}
+
+func home(w http.ResponseWriter, r *http.Request) {
+
+	cnt := &strings.Builder{}
+	fmt.Fprintf(cnt, "<p>Hello, TLS user </p>\n")
+	fmt.Fprintf(cnt, "<p>Your config: </p>\n")
+	fmt.Fprintf(cnt, "<pre id='tls-config'>%+v  </pre>\n", r.TLS)
+
+	renderScaffold(w, "Home page", "golang web server prototype", cnt)
 
 }
 
-func plainHello(w http.ResponseWriter, req *http.Request) {
+func plain(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "This is an example server.\n")
 }
@@ -78,7 +88,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
-	mux.HandleFunc("/hello", plainHello)
+	mux.HandleFunc("/hello", plain)
 
 	mux.Handle("/js/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
 	mux.Handle("/css/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
@@ -89,6 +99,7 @@ func main() {
 	switch cfg.Get().ModeHTTPS {
 
 	case "https-localhost-cert":
+		// localhost development; based on [Filipo Valsordas tool](https://github.com/FiloSottile/mkcert)
 		err = http.ListenAndServeTLS(
 			":443", "./certs/server.pem", "./certs/server.key", mux)
 
@@ -97,45 +108,25 @@ func main() {
 		err = http.Serve(lstnr, mux)
 
 	case "letsenrypt-extended":
-		appDir, _ := os.Getwd()
 
 		mgr := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(cfg.Get().Domains...),
-			Cache:      autocert.DirCache(filepath.Join(appDir, "autocert")),
+			Cache:      autocert.DirCache(filepath.Join(cfg.Get().AppDir, "autocert")),
 		}
 
 		tlsCfg := &tls.Config{
+			// ServerName:     "xxxxxx",  // should equal hostname
 			GetCertificate: mgr.GetCertificate,
-			NextProtos: []string{
-				"h2", "http/1.1", // enable HTTP/2
-				acme.ALPNProto, // enable tls-alpn ACME challenges
-			},
-
-			// only use curves which have assembly implementations
-			CurvePreferences: []tls.CurveID{
-				tls.CurveP256,
-				tls.X25519, // Go 1.8 only
-			},
-			MinVersion: tls.VersionTLS12,
-
-			/*
-				// For TLS 1.2 - Default: client ciphersuite preferences,
-				// switchting to server ciphersuite prefs of Ciphersuites
-				PreferServerCipherSuites: true,
-				CipherSuites: []uint16{
-					tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-					tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-				},
-			*/
+			MinVersion:     tls.VersionTLS12,
+			// NextProtos: []string{
+			// 	"h2", "http/1.1", // enable HTTP/2
+			// 	acme.ALPNProto, // enable tls-alpn ACME challenges
+			// },
 		}
 
 		server := &http.Server{
-			Addr:      ":https",
+			Addr:      ":https", // same as :443
 			TLSConfig: tlsCfg,
 			Handler:   mux,
 		}
@@ -145,7 +136,7 @@ func main() {
 			server.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
 		}
 
-		// http fallback
+		// http server
 		go func() {
 			if cfg.Get().AllowHTTP {
 				log.Fatal(http.ListenAndServe(":http", mux))
@@ -163,6 +154,6 @@ func main() {
 	}
 
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		log.Fatal("https server failed: ", err)
 	}
 }

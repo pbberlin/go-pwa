@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -18,7 +19,13 @@ type cfg struct {
 	AutoRedirectHTTP bool // when HTTP is not allowed: Redirect automatically redirect to HTTPS via web browser
 
 	HTML5 string
-	TS    int64
+	JS    string
+	CSS   string
+
+	AppDir string
+	TS     int64
+
+	// default app title, meta tag description
 }
 
 var defaultCfg = &cfg{
@@ -35,6 +42,8 @@ var defaultCfg = &cfg{
 
 func init() {
 
+	log.SetFlags(log.Lshortfile | log.Llongfile)
+
 	bts, _ := json.MarshalIndent(defaultCfg, "", "\t")
 	ioutil.WriteFile("tmp-example-config.json", bts, 0777)
 
@@ -43,7 +52,7 @@ func init() {
 	if err != nil {
 		log.Printf("error opening %v, %v", pth, err)
 	} else {
-		err = json.Unmarshal(bts, defaultCfg)
+		err := json.Unmarshal(bts, defaultCfg)
 		if err != nil {
 			log.Printf("error unmarshalling %v, %v", pth, err)
 		} else {
@@ -52,6 +61,12 @@ func init() {
 	}
 
 	defaultCfg.Dms = strings.Join(defaultCfg.Domains, ", ")
+
+	defaultCfg.AppDir, err = os.Getwd()
+	if err != nil {
+		log.Fatalf("error os.Getwd() %v", err)
+	}
+
 	defaultCfg.TS = time.Now().UTC().Unix()
 
 	//

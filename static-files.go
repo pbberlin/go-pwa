@@ -11,21 +11,15 @@ import (
 	"github.com/zew/https-server/cfg"
 )
 
-var js = `
-	<script src="/js/menu-and-form-control-keys.js?v=1637681051" ></script>
-	<script src="/js/validation.js?v=1637681051"                 ></script>
-`
-var css = `
-	<link href="/css/styles.css?v=1637681051"              rel="stylesheet" type="text/css" />
-	<link href="/css/progress-bar-2.css?v=1637681051"      rel="stylesheet" type="text/css" />
-	<link href="/css/styles-mobile.css?v=1637681051"       rel="stylesheet" type="text/css" />
-	<link href="/css/styles-quest.css?v=1637681051"        rel="stylesheet" type="text/css" />
-	<link href="/css/styles-quest-no-site-specified-a.css" rel="stylesheet" type="text/css" />
-`
-
 func init() {
 
+	log.SetFlags(log.Lshortfile | log.Llongfile)
+
 	dirs := []string{"./static/js/", "./static/css/"}
+
+	exceptions := map[string]bool{
+		"service-worker.js": true,
+	}
 
 	for idx, dir := range dirs {
 
@@ -41,7 +35,13 @@ func init() {
 		}
 
 		for _, file := range files {
-			log.Printf("static %32v", file.Name())
+
+			if exceptions[file.Name()] {
+				log.Printf("\t  static skipping %v", file.Name())
+				continue
+			}
+
+			log.Printf("\tstatic %v", file.Name())
 
 			if idx == 0 {
 				fmt.Fprintf(sb, `	<script src="/js/%v?v=%d" nonce="%d" ></script>`, file.Name(), cfg.Get().TS, cfg.Get().TS)
@@ -54,10 +54,10 @@ func init() {
 		}
 
 		if idx == 0 {
-			js = sb.String()
+			cfg.Get().JS = sb.String()
 		}
 		if idx == 1 {
-			css = sb.String()
+			cfg.Get().CSS = sb.String()
 		}
 
 	}
