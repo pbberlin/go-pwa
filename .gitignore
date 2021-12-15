@@ -1,4 +1,6 @@
 https-server
+https-server-new
+
 ~*
 *.exe
 *.exe~
@@ -6,3 +8,9 @@ https-server
 static/**
 tmp/*
 tmp*
+
+# localhost development certificate
+certs/**
+
+# lighthouse report files
+*.report.html

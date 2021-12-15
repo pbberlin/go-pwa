@@ -1,7 +1,7 @@
 # sudo systemctl start    https-server.service
 # sudo systemctl status   https-server.service   --no-pager
 
-
+cd /opt/https-server/
 
 ps aux |grep https-server
 
@@ -23,4 +23,4 @@ less ./app.log
 # now we can test compliance
 # https://github.com/GoogleChrome/Lighthouse
 # lighthouse https://fmt.zew.de/
-# lighthouse http://localhost/
+# lighthouse https://localhost/

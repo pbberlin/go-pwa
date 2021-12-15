@@ -1,0 +1,11 @@
+{
+	"ModeHTTPS": "https-localhost-cert",
+	"Domains": [
+		"fmt.zew.de",
+		"fmt.zew.de"
+	],
+	"Dms": "",
+	"AllowHTTP": true,
+	"AutoRedirectHTTP": true,
+	"HTML5": ""
+}

@@ -1,17 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"crypto/tls"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/zew/https-server/cfg"
 	"github.com/zew/https-server/gziphandler"
 	"golang.org/x/crypto/acme"
 	"golang.org/x/crypto/acme/autocert"
@@ -24,12 +22,9 @@ func stripPortFromHost(s string) string {
 	return s
 }
 
-const rewriteHTTP = true
-const forwardHTTP = false
-
 func redirectHTTP(w http.ResponseWriter, r *http.Request) {
 
-	if rewriteHTTP {
+	if cfg.Get().AutoRedirectHTTP {
 
 		if r.Method != "GET" && r.Method != "HEAD" {
 			http.Error(w, "Use HTTPS", http.StatusBadRequest)
@@ -47,84 +42,35 @@ func redirectHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// description is an requirement by Google's lighthouse HTML testing suite
-var html5 = ``
-
-func init() {
-	pth := "./scaffold.html"
-	bts, err := ioutil.ReadFile(pth)
-	if err != nil {
-		log.Printf("error opening %v, %v", pth, err)
-		return
-	}
-	html5 = string(bts)
-}
-
-// close by using </body></html>
-
-var js = `
-	<script src="/js/menu-and-form-control-keys.js?v=1637681051" ></script>
-	<script src="/js/validation.js?v=1637681051"                 ></script>
-`
-var css = `
-	<link href="/css/styles.css?v=1637681051"              rel="stylesheet" type="text/css" />
-	<link href="/css/progress-bar-2.css?v=1637681051"      rel="stylesheet" type="text/css" />
-	<link href="/css/styles-mobile.css?v=1637681051"       rel="stylesheet" type="text/css" />
-	<link href="/css/styles-quest.css?v=1637681051"        rel="stylesheet" type="text/css" />
-	<link href="/css/styles-quest-no-site-specified-a.css" rel="stylesheet" type="text/css" />
-`
-
 func home(w http.ResponseWriter, r *http.Request) {
 
-	// cnt := strings.Builder{}
-	cnt := &bytes.Buffer{}
+	cnt := &strings.Builder{}
 	fmt.Fprintf(cnt, "<p>Hello, TLS user </p>\n")
 	fmt.Fprintf(cnt, "<p>Your config: </p>\n")
-	fmt.Fprintf(cnt, "<pre  style='white-space: pre-wrap;'>%+v  </pre>\n", r.TLS)
+	fmt.Fprintf(cnt, "<pre id='tls-config'>%+v  </pre>\n", r.TLS)
 
 	w.Header().Set("Content-Type", "text/html")
-	fmt.Fprintf(w, html5, "Hello, TLS user", js, css, cnt.String())
+	/*
+		https://csp.withgoogle.com/docs/index.html
+		https://csp.withgoogle.com/docs/strict-csp.html#example
+
+		default-src     - https: http:
+		script-src      - 'nonce-{random}'  'unsafe-inline'  for old browsers
+		strict-dynamic  - 'script-xyz.js'  can load additional scripts via script elements
+		object-src      -  sources for <object>, <embed>, <applet>
+		base-uri        - 'self' 'none' - for relative URLs
+		report-uri      - https://your-report-collector.example.com/
+
+	*/
+	csp := fmt.Sprintf("default-src https:; script-src 'nonce-%d' 'unsafe-inline'; object-src 'none'; base-uri 'none';", cfg.Get().TS)
+	w.Header().Set("Content-Security-Policy", csp)
+	fmt.Fprintf(w, cfg.Get().HTML5, "Hello, TLS user", js, css, cnt.String())
 
 }
 
 func plainHello(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "This is an example server.\n")
-}
-
-func staticResources(w http.ResponseWriter, r *http.Request) {
-
-	if strings.HasPrefix(r.URL.Path, "/js/") {
-		w.Header().Set("Content-Type", "application/javascript")
-	} else if strings.HasPrefix(r.URL.Path, "/css/") {
-		w.Header().Set("Content-Type", "text/css")
-	} else if strings.HasPrefix(r.URL.Path, "/robots.txt") {
-		w.Header().Set("Content-Type", "text/plain")
-		fmt.Fprintf(w, "User-agent: Googlebot Disallow: /example-subfolder/")
-		return
-	} else {
-		return
-	}
-	pth := "./static" + r.URL.Path
-
-	// bts, _ := ioutil.ReadFile(pth)
-	// fmt.Fprint(w, bts)
-
-	file, err := os.Open(pth)
-	if err != nil {
-		log.Printf("error opening %v, %v", pth, err)
-		return
-	}
-	defer file.Close()
-
-	n, err := io.Copy(w, file)
-	if err != nil {
-		log.Printf("error writing file into response: %v, %v", pth, err)
-		return
-	}
-
-	log.Printf("%8v bytes written from %v", n, pth)
-
 }
 
 func main() {
@@ -139,24 +85,22 @@ func main() {
 
 	var err error
 
-	switch "letsenrypt-extended" {
+	switch cfg.Get().ModeHTTPS {
 
-	case "classic":
-		err = http.ListenAndServeTLS(":443", "server.crt", "server.key", nil)
+	case "https-localhost-cert":
+		err = http.ListenAndServeTLS(
+			":443", "./certs/server.pem", "./certs/server.key", mux)
 
 	case "letsenrypt-simple":
-		lstnr := autocert.NewListener("fmt.zew.de")
+		lstnr := autocert.NewListener(cfg.Get().Domains...)
 		err = http.Serve(lstnr, mux)
 
 	case "letsenrypt-extended":
 		appDir, _ := os.Getwd()
-		domains := []string{"fmt.zew.de", "fmt.zew.de"}
-		// domains := []string{"fmt.zew.de", "dmd.zew.de"}
-		domainss := strings.Join(domains, ", ")
 
 		mgr := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(domains...),
+			HostPolicy: autocert.HostWhitelist(cfg.Get().Domains...),
 			Cache:      autocert.DirCache(filepath.Join(appDir, "autocert")),
 		}
 
@@ -202,19 +146,17 @@ func main() {
 
 		// http fallback
 		go func() {
-
-			if forwardHTTP {
-				log.Printf("serve HTTP, which will redirect automatically to HTTPS - %v", domainss)
+			if cfg.Get().AllowHTTP {
+				log.Fatal(http.ListenAndServe(":http", mux))
+			} else {
+				log.Printf("serve HTTP, which will redirect automatically to HTTPS - %v", cfg.Get().Dms)
 				// h := mgr.HTTPHandler(nil) // argument nil would silently redirect
 				h := mgr.HTTPHandler(http.HandlerFunc(redirectHTTP))
 				log.Fatal(http.ListenAndServe(":http", h))
-			} else {
-				// allow http
-				log.Fatal(http.ListenAndServe(":http", mux))
 			}
 		}()
 
-		log.Printf("serve HTTPS for %v", domainss)
+		log.Printf("serve HTTPS for %v", cfg.Get().Dms)
 		err = server.ListenAndServeTLS("", "")
 
 	}
