@@ -62,7 +62,7 @@ func renderScaffold(w http.ResponseWriter, title, desc string, cnt *strings.Buil
 	csp += fmt.Sprintf("object-src     'none'; ")
 	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.Get().TS)
 	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.Get().TS)
-	csp += fmt.Sprintf("worker-src      https://*/js/service-worker.js; ")
+	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
 	w.Header().Set("Content-Security-Policy", csp)
 
 	fmt.Fprintf(w, cfg.Get().HTML5, title, desc, cfg.Get().JS, cfg.Get().CSS, cnt.String())
@@ -92,7 +92,12 @@ func main() {
 
 	mux.Handle("/js/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
 	mux.Handle("/css/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+	mux.Handle("/img/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+	mux.Handle("/json/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+
+	// special static files - must be in root dir
 	mux.HandleFunc("/robots.txt", staticResources)
+	mux.HandleFunc("/service-worker.js", staticResources)
 
 	var err error
 

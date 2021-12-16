@@ -70,13 +70,20 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/javascript")
 	} else if strings.HasPrefix(r.URL.Path, "/css/") {
 		w.Header().Set("Content-Type", "text/css")
+	} else if strings.HasPrefix(r.URL.Path, "/img/") {
+		w.Header().Set("Content-Type", "image/png")
+	} else if strings.HasPrefix(r.URL.Path, "/json/") {
+		w.Header().Set("Content-Type", "application/json")
 	} else if strings.HasPrefix(r.URL.Path, "/robots.txt") {
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "User-agent: Googlebot Disallow: /example-subfolder/")
 		return
+	} else if strings.HasPrefix(r.URL.Path, "/service-worker.js") {
+		w.Header().Set("Content-Type", "application/javascript")
 	} else {
 		return
 	}
+
 	pth := "./static" + r.URL.Path
 
 	// bts, _ := ioutil.ReadFile(pth)
