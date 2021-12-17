@@ -86,20 +86,26 @@ func plain(w http.ResponseWriter, req *http.Request) {
 
 func main() {
 
+	var err error
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
 	mux.HandleFunc("/hello", plain)
 
-	mux.Handle("/js/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
-	mux.Handle("/css/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
-	mux.Handle("/img/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
-	mux.Handle("/json/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+	if cfg.Get().PrecompressedGZIP {
+		mux.HandleFunc("/js/", staticResources)
+		mux.HandleFunc("/css/", staticResources)
+	} else {
+		mux.Handle("/js/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+		mux.Handle("/css/", gziphandler.GzipHandler(http.HandlerFunc(staticResources)))
+	}
+
+	mux.Handle("/json/", http.HandlerFunc(staticResources))
+	mux.Handle("/img/", http.HandlerFunc(staticResources))
 
 	// special static files - must be in root dir
 	mux.HandleFunc("/robots.txt", staticResources)
 	mux.HandleFunc("/service-worker.js", staticResources)
-
-	var err error
 
 	switch cfg.Get().ModeHTTPS {
 

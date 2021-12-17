@@ -25,6 +25,10 @@ type cfg struct {
 	AppDir string
 	TS     int64
 
+	// serve precompressed .gzip files
+	//   default is dynamic compression
+	PrecompressedGZIP bool
+
 	// default app title, meta tag description
 }
 
@@ -38,6 +42,8 @@ var defaultCfg = &cfg{
 	//
 	AllowHTTP:        true,
 	AutoRedirectHTTP: true,
+
+	PrecompressedGZIP: true,
 }
 
 func init() {

@@ -14,6 +14,8 @@ Keeping up with
 
 * gzipping
 
+* HTML template
+
 * PWA
 
 Trying to combine it into a slim `go` program,  

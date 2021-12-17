@@ -1,3 +1,4 @@
+// package gziphandler dynamically compresses files and serves them
 package gziphandler
 
 // import "github.com/NYTimes/gziphandler"

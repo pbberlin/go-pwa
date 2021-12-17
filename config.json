@@ -7,5 +7,6 @@
 	"Dms": "",
 	"AllowHTTP": true,
 	"AutoRedirectHTTP": true,
-	"HTML5": ""
+	"HTML5": "",
+	"PrecompressedGZIP": true
 }
