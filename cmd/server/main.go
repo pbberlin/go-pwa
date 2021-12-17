@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zew/https-server/cfg"
-	"github.com/zew/https-server/gziphandler"
+	"github.com/zew/https-server/pkg/cfg"
+	"github.com/zew/https-server/pkg/gziphandler"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -40,59 +40,16 @@ func redirectHTTP(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func renderScaffold(w http.ResponseWriter, title, desc string, cnt *strings.Builder) {
-
-	w.Header().Set("Content-Type", "text/html")
-	/*
-		https://csp.withgoogle.com/docs/index.html
-		https://csp.withgoogle.com/docs/strict-csp.html#example
-
-		default-src     -  https: http:
-		script-src      - 'nonce-{random}'  'unsafe-inline'   - for old browsers
-		style-src-elem  - 'self' 'nonce-{random}'             - strangely, self is required
-		strict-dynamic  -  unused; 'script-xyz.js'can load additional scripts via script elements
-		object-src      -  sources for <object>, <embed>, <applet>
-		base-uri        - 'self' 'none' - for relative URLs
-		report-uri      -  https://your-report-collector.example.com/
-
-	*/
-	csp := ""
-	csp += fmt.Sprintf("default-src     https:; ")
-	csp += fmt.Sprintf("base-uri       'none'; ")
-	csp += fmt.Sprintf("object-src     'none'; ")
-	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.Get().TS)
-	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.Get().TS)
-	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
-	w.Header().Set("Content-Security-Policy", csp)
-
-	fmt.Fprintf(w, cfg.Get().HTML5, title, desc, cfg.Get().JS, cfg.Get().CSS, cnt.String())
-}
-
-func home(w http.ResponseWriter, r *http.Request) {
-
-	cnt := &strings.Builder{}
-	fmt.Fprintf(cnt, "<p>Hello, TLS user </p>\n")
-	fmt.Fprintf(cnt, "<p>Your config: </p>\n")
-	fmt.Fprintf(cnt, "<pre id='tls-config'>%+v  </pre>\n", r.TLS)
-
-	renderScaffold(w, "Home page", "golang web server prototype", cnt)
-
-}
-
-func plain(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprintf(w, "This is an example server.\n")
-}
-
 func main() {
 
 	var err error
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
+	mux.HandleFunc("/prepare-static", prepareStatic)
 	mux.HandleFunc("/hello", plain)
 
-	if cfg.Get().PrecompressedGZIP {
+	if cfg.Get().PrecompressGZIP {
 		mux.HandleFunc("/js/", staticResources)
 		mux.HandleFunc("/css/", staticResources)
 	} else {

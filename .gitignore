@@ -4,8 +4,9 @@ https-server-new
 ~*
 *.exe
 *.exe~
+*.gzip
 
-static/**
+# static/**
 tmp/*
 tmp*
 

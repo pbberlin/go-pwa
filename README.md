@@ -1,5 +1,7 @@
 # HTTPS server prototype
 
+<img src="./static/img/mascot.png" style="float: left; width:8%; min-width: 160px; max-width: 22%; margin-right:5%; margin-bottom: 2%;"> 
+
 Keeping up with
 
 * HTTP/2
@@ -12,15 +14,11 @@ Keeping up with
 
 * Content Security Policies - CSP
 
-* gzipping
+* gzip static content
 
-* HTML template
+* PWA service worker and manifest
 
-* PWA
+* PWA compatible HTML template
 
 Trying to combine it into a slim `go` program,  
 which is testable using [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse).
-
-## Diverse
-
-* We could pre-compress the static files

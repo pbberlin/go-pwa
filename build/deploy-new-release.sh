@@ -19,8 +19,3 @@ chmod +x /opt/https-server/https-server
 ./https-server  >app.log 2>&1 &
 
 less ./app.log
-
-# now we can test compliance
-# https://github.com/GoogleChrome/Lighthouse
-# lighthouse https://fmt.zew.de/
-# lighthouse https://localhost/

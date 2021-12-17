@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--  -->
+	<!-- <link rel="icon"  href="data:;base64,="    type="image/x-icon" />     -->
+	<link rel="icon"  href="/img/favicon.ico"  type="image/x-icon" />
+
+
+    <title>{{.Title}}</title>
+    <!-- description is a requirement by Google's lighthouse HTML testing suite -->
+	<meta name="description" content="{{.Desc}}">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/json/manifest.json">
+    <meta name="theme-color" content="rgb(228, 223, 206)" />
+    <!-- PWA for Apple - home screen icon - and theme color -->
+    <link rel="apple-touch-icon" href="/img/icon-096.png">
+    <meta name="apple-mobile-web-app-status-bar" content="rgb(228, 223, 206)" />
+
+    <!-- js files -->
+{{.JSTags}}
+
+    <!-- css files -->
+{{.CSSTags}}
+
+
+</head>
+<body>
+
+<nav>
+	<!-- satisfy some javascript stuff -->
+    <form action="">
+		<input type="checkbox" name="mnu-1st-lvl-toggler" id="mnu-1st-lvl-toggler"   >
+    </form>	
+</nav>
+
+<span class='content-separator'></span> 
+<form class="content" name="frmMain" method="POST" action="/" >
+    {{.Content}}
+    {{.ContentBuf}}
+</form>
+<span class='content-separator'></span> 
+
+</body>
+</html>

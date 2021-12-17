@@ -1,0 +1,13 @@
+{
+	"title": "Golang PWA",
+	"description": "Golang HTTPS server PWA prototype",
+
+	"mode_https": "https-localhost-cert",
+	"domains": [
+		"fmt.zew.de",
+		"fmt.zew.de"
+	],
+	"allow_http": true,
+	"auto_redirect_http": true,
+	"precompress_gzip": true
+}

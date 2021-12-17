@@ -1,20 +1,57 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
-  "name": "https-server",
-  "short_name": "https-server",
+  "name": "HTTPS Server",
+  "short_name": "HTTPS Srv",
+  "description": "HTTPS server prototype",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fff",
-  "description": "A readable Hacker News app.",
-  "icons": [{
-    "src": "/img/home2.png",
+  "theme_color": "rgb(228, 223, 206)",
+  "orientation": "portrait-primary",
+  "icons": [
+  {
+    "src": "/img/icon-072.png",
+    "sizes": "72x72",
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "/img/icon-096.png",
+    "sizes": "96x96",
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "/img/icon-128.png",
+    "sizes": "128x128",
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "/img/icon-144.png",
     "sizes": "144x144",
-    "type": "image/png"
-  },{
-    "src": "/img/home1.png",
+    "type": "image/png",
+    "purpose": "any"
+  },
+  {
+    "src": "/img/icon-192.png",
     "sizes": "192x192",
-    "type": "image/png"
-  }],
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "/img/icon-384.png",
+    "sizes": "384x384",
+    "type": "image/png",
+    "purpose": "maskable"
+  },
+  {
+    "src": "/img/icon-512.png",
+    "sizes": "512x512",
+    "type": "image/png",
+    "purpose": "maskable"
+  }
+],
   "related_applications": [{
     "platform": "play",
     "url": "https://play.google.com/store/apps/details?id=cheeaun.hackerweb"

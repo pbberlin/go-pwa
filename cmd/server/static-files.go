@@ -5,19 +5,39 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
 
-	"github.com/zew/https-server/cfg"
-	"github.com/zew/https-server/gzipper"
+	"github.com/zew/https-server/pkg/cfg"
+	"github.com/zew/https-server/pkg/gzipper"
 )
 
 func init() {
 
 	log.SetFlags(log.Lshortfile | log.Llongfile)
+	w := httptest.NewRecorder()
+	r, err := http.NewRequest("GET", "/prepare-static", nil)
+	if err != nil {
+		log.Fatalf("could not prepare dummy request %v", err)
+	}
+	prepareStatic(w, r)
 
-	dirs := []string{"./static/js/", "./static/css/"}
+	log.Print(string(w.Body.Bytes()))
+
+}
+
+func prepareStatic(w http.ResponseWriter, req *http.Request) {
+
+	w.Header().Set("Content-Type", "text/plain")
+	fmt.Fprint(w, "prepare static files\n")
+
+	dirs := []string{
+		"./static/js/",
+		"./static/css/",
+		"./static/", // the service-worker.js
+	}
 
 	exceptions := map[string]bool{
 		// "service-worker.js": true,
@@ -25,30 +45,38 @@ func init() {
 
 	for idx, dir := range dirs {
 
+		fmt.Fprintf(w, "start dir %v\n", dir)
+
 		sb := &strings.Builder{}
 
 		dirHandle, err := os.Open(dir) // open
 		if err != nil {
-			log.Fatalf("could not open %v, error %v", dir, err)
+			fmt.Fprintf(w, "could not open %v, error %v\n", dir, err)
+			return
 		}
 		files, _ := dirHandle.Readdir(0) // get files
 		if err != nil {
-			log.Fatalf("could not read contents of %v, error %v", dir, err)
+			fmt.Fprintf(w, "could not read contents of %v, error %v\n", dir, err)
+			return
 		}
 
 		for _, file := range files {
 
 			if exceptions[file.Name()] {
-				log.Printf("\t  static skipping exception %v", file.Name())
+				fmt.Fprintf(w, "\t  skipping exception %v\n", file.Name())
 				continue
 			}
 
 			if strings.HasSuffix(file.Name(), ".gzip") {
-				// log.Printf("\t  static skipping %v", file.Name())
+				// fmt.Fprintf(w, "\t  static skipping %v\n", file.Name())
 				continue
 			}
 
-			log.Printf("\tstatic %v", file.Name())
+			if file.IsDir() {
+				continue
+			}
+
+			fmt.Fprintf(w, "\t %v\n", file.Name())
 
 			if idx == 0 {
 				fmt.Fprintf(sb, `	<script src="/js/%v?v=%d" nonce="%d" ></script>`, file.Name(), cfg.Get().TS, cfg.Get().TS)
@@ -64,7 +92,8 @@ func init() {
 				fn := path.Join(dir, file.Name())
 				gzw, err := gzipper.New(fn)
 				if err != nil {
-					log.Printf("could not create gzWriter for %v, %v", fn, err)
+					fmt.Fprintf(w, "could not create gzWriter for %v, %v\n", fn, err)
+					return
 				}
 				defer gzw.Close()
 				// gzw.WriteString("gzipper.go created this file.\n")
@@ -81,6 +110,8 @@ func init() {
 			cfg.Get().CSS = sb.String()
 		}
 
+		fmt.Fprintf(w, "stop dir %v\n\n", dir)
+
 	}
 
 }
@@ -89,12 +120,19 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 
 	if strings.HasPrefix(r.URL.Path, "/js/") {
 		w.Header().Set("Content-Type", "application/javascript")
+		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
 	} else if strings.HasPrefix(r.URL.Path, "/service-worker.js") {
 		w.Header().Set("Content-Type", "application/javascript")
 	} else if strings.HasPrefix(r.URL.Path, "/css/") {
 		w.Header().Set("Content-Type", "text/css")
+		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
 	} else if strings.HasPrefix(r.URL.Path, "/img/") {
-		w.Header().Set("Content-Type", "image/png")
+		if strings.HasPrefix(r.URL.Path, "/img/favicon.ico") {
+			w.Header().Set("Content-Type", "image/x-icon")
+		} else {
+			w.Header().Set("Content-Type", "image/png")
+		}
+		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
 	} else if strings.HasPrefix(r.URL.Path, "/json/") {
 		w.Header().Set("Content-Type", "application/json")
 	} else if strings.HasPrefix(r.URL.Path, "/robots.txt") {
@@ -105,15 +143,12 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// andrewlock.net/adding-cache-control-headers-to-static-files-in-asp-net.core/
-	w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
-
 	pth := "./static" + r.URL.Path
 
 	// bts, _ := ioutil.ReadFile(pth)
 	// fmt.Fprint(w, bts)
 
-	if cfg.Get().PrecompressedGZIP {
+	if cfg.Get().PrecompressGZIP {
 		if strings.HasSuffix(pth, ".js") || strings.HasSuffix(pth, ".css") {
 			// not for images or json
 			pth += ".gzip"
@@ -128,12 +163,11 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	n, err := io.Copy(w, file)
+	_, err = io.Copy(w, file)
 	if err != nil {
 		log.Printf("error writing file into response: %v, %v", pth, err)
 		return
 	}
-
-	log.Printf("%8v bytes written from %v", n, pth)
+	// log.Printf("%8v bytes written from %v", n, pth)
 
 }

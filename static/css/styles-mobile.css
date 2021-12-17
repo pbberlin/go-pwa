@@ -1,0 +1,63 @@
+/*
+===========================================
+    generic changes for mobile - except nav
+===========================================
+*/
+
+
+/* very big display => enlarge */
+@media screen and (min-width: 1280px) and (min-height: 920px) {
+	html {
+		/* has no effect, if chrome browser not at 100 percent zoom */
+		zoom: 120%;
+	}
+}
+
+
+@media screen and (max-width: 800px) {
+
+    :root {
+    	font-size: clamp(0.95rem, calc(0.8rem + ((1vw - .48rem) * 1.2)), 1.05rem);
+    }
+    
+    * {
+        line-height: 135%; /* instead of 135% */
+    }
+
+    .page-static {
+        max-width: unset;
+        margin: 0 0.8rem 
+    }
+
+
+    label, .postlabel {
+        min-width: unset;
+    }
+
+    label {
+        margin-right: 0.01rem;
+    }
+
+    .postlabel {
+        margin-left:  0.01rem;
+    }
+
+    nav a.logo .logo-img-desktop {
+        display: none;
+    }
+
+    nav a.logo .logo-img-mobile {
+        display: inline-block;
+    }
+
+
+    nav a.title {
+        font-size: 80%;
+    }
+
+    ol.progress {
+        display: none;
+    }
+
+
+}
