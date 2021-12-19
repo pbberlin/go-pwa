@@ -12,9 +12,11 @@ Keeping up with
 
 * Localhost certificate based on [Filipo Valsordas tool](https://github.com/FiloSottile/mkcert)
 
-* Content Security Policies - CSP
+* Content Security Policies - CSP  
+  against CSRF
 
-* gzip static content
+* Compress static content  
+  on the fly - or precompress on app start
 
 * PWA service worker and manifest
 

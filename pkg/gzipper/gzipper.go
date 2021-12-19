@@ -48,12 +48,13 @@ func (gz gzFileWriter) WriteFile(srcPth string) {
 	defer src.Close()
 
 	n, err := io.Copy(gz.buf, src)
+	_ = n
 	if err != nil {
 		log.Printf("error writing file into gzip file: %v, %v", srcPth, err)
 		return
 	}
 
-	log.Printf("%8v bytes written to %v from %v", n, gz.f.Name(), srcPth)
+	// log.Printf("%8v bytes written to %v from %v", n, gz.f.Name(), srcPth)
 
 }
 

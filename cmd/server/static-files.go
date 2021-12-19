@@ -15,23 +15,28 @@ import (
 )
 
 func init() {
-
 	log.SetFlags(log.Lshortfile | log.Llongfile)
 	w := httptest.NewRecorder()
-	r, err := http.NewRequest("GET", "/prepare-static", nil)
-	if err != nil {
-		log.Fatalf("could not prepare dummy request %v", err)
-	}
+	r := httptest.NewRequest("GET", "/prepare-static", nil)
 	prepareStatic(w, r)
 
-	log.Print(string(w.Body.Bytes()))
-
+	res := w.Result()
+	defer res.Body.Close()
+	bts, err := io.ReadAll(res.Body)
+	if err != nil {
+		log.Printf("error reading response of /prepare-static %v", err)
+	}
+	log.Print(string(bts))
 }
 
 func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "prepare static files\n")
+
+	if cfg.Get().TS == 0 {
+		panic("init - prepareStatic called before cfg::init().Load")
+	}
 
 	dirs := []string{
 		"./static/js/",
@@ -104,10 +109,10 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 		}
 
 		if idx == 0 {
-			cfg.Get().JS = sb.String()
+			cfg.Set().JS = sb.String()
 		}
 		if idx == 1 {
-			cfg.Get().CSS = sb.String()
+			cfg.Set().CSS = sb.String()
 		}
 
 		fmt.Fprintf(w, "stop dir %v\n\n", dir)
@@ -145,7 +150,7 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 
 	pth := "./static" + r.URL.Path
 
-	// bts, _ := ioutil.ReadFile(pth)
+	// bts, _ := os.ReadFile(pth)
 	// fmt.Fprint(w, bts)
 
 	if cfg.Get().PrecompressGZIP {
