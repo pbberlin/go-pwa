@@ -15,19 +15,25 @@ import (
 	"time"
 )
 
-func init() {
+// Headless executes a HTTP handle func
+// and writes it output into the log
+func Headless(fnc func(w http.ResponseWriter, r *http.Request), pth string) {
 	log.SetFlags(log.Lshortfile | log.Llongfile)
 	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/config/load", nil)
-	Load(w, r)
+	r := httptest.NewRequest("GET", pth, nil)
+	fnc(w, r)
 
 	res := w.Result()
 	defer res.Body.Close()
 	bts, err := io.ReadAll(res.Body)
 	if err != nil {
-		log.Printf("error reading response of /config/load %v", err)
+		log.Printf("error reading response of %v: %v", pth, err)
 	}
 	log.Print(string(bts))
+}
+
+func init() {
+	// RunHandleFunc(Load, "/config/load")
 }
 
 //

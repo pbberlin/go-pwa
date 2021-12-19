@@ -44,6 +44,9 @@ func main() {
 
 	var err error
 
+	cfg.Headless(cfg.Load, "/config/load")
+	cfg.Headless(prepareStatic, "/prepare-static")
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
 	mux.HandleFunc("/prepare-static", prepareStatic)

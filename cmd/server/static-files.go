@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"path"
 	"strings"
@@ -15,18 +14,7 @@ import (
 )
 
 func init() {
-	log.SetFlags(log.Lshortfile | log.Llongfile)
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest("GET", "/prepare-static", nil)
-	prepareStatic(w, r)
-
-	res := w.Result()
-	defer res.Body.Close()
-	bts, err := io.ReadAll(res.Body)
-	if err != nil {
-		log.Printf("error reading response of /prepare-static %v", err)
-	}
-	log.Print(string(bts))
+	// cfg.RunHandleFunc(prepareStatic, "/prepare-static")
 }
 
 func prepareStatic(w http.ResponseWriter, req *http.Request) {
