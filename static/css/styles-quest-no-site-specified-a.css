@@ -6,3 +6,13 @@
     white-space: pre-wrap;
     font-size: 150%;
 }
+
+#footer li {
+    background-color: burlywood;
+    display: inline-block;
+}
+
+#footer img {
+    min-height: 120px;
+    max-height: 120px;
+}

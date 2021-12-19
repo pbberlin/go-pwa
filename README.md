@@ -18,9 +18,16 @@ Keeping up with
 * Compress static content  
   on the fly - or precompress on app start
 
-* PWA service worker and manifest
+* HTML template for PWA
 
-* PWA compatible HTML template
+* PWA manifest
+
+* PWA service worker
+  * Register + Install
+    * Prime the cache
+  * Activate (`update on reload` or re-open browser)
+  * Fetch
+    * Updating cache
 
 Trying to combine it into a slim `go` program,  
 which is testable using [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse).

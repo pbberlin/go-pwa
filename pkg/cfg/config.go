@@ -88,6 +88,7 @@ func Load(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "loading config\n")
 
+	// write example with defaults
 	{
 		pth := "./static/json/tmp-example-config.json"
 		bts, err := json.MarshalIndent(defaultCfg, "", "\t")
@@ -102,13 +103,14 @@ func Load(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//
+	tmpCfg := cfg{}
 	pth := "./static/json/config.json"
 	bts, err := os.ReadFile(pth)
 	if err != nil {
 		fmt.Fprintf(w, "error opening %v, %v \n", pth, err)
 		panic(fmt.Sprintf("need %v", pth))
 	} else {
-		err := json.Unmarshal(bts, defaultCfg)
+		err := json.Unmarshal(bts, &tmpCfg)
 		if err != nil {
 			fmt.Fprintf(w, "error unmarshalling %v, %v \n", pth, err)
 			panic(fmt.Sprintf("need valid %v", pth))
@@ -120,25 +122,27 @@ func Load(w http.ResponseWriter, r *http.Request) {
 	//
 	//
 	// other dynamic stuff
-	defaultCfg.Dms = strings.Join(defaultCfg.Domains, ", ")
+	tmpCfg.Dms = strings.Join(tmpCfg.Domains, ", ")
 
-	defaultCfg.AppDir, err = os.Getwd()
+	tmpCfg.AppDir, err = os.Getwd()
 	if err != nil {
 		log.Fatalf("error os.Getwd() %v \n", err)
 	}
 
-	defaultCfg.TS = time.Now().UTC().Unix()
+	tmpCfg.TS = time.Now().UTC().Unix()
 
 	//
 	{
 		pth := "./static/tpl/scaffold.tpl.html"
 		var err error
-		defaultCfg.TplMain, err = template.ParseFiles(pth)
+		tmpCfg.TplMain, err = template.ParseFiles(pth)
 		if err != nil {
 			log.Printf("error parsing  %v, %v", pth, err)
 			return
 		}
 	}
+
+	defaultCfg = &tmpCfg // replace pointer at once - should be threadsafe
 
 }
 

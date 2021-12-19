@@ -1,12 +1,12 @@
 // from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
 
 
-const VS = 2; // version - only for forcing update
+const VS = 8; // version - only for forcing update
 
-const CACHE_DEFAULT = 'offline';  // example 1
+const MY_CACHE_1 = 'offline';  // example 1
 
 
-const CACHE_STATIC  = 'static-resources'; // example 2
+const MY_CACHE_2  = 'static-resources'; // example 2
 const STATIC_RESS   = [
   '/css/progress-bar-2.css',
   '/css/styles-mobile.css',
@@ -24,27 +24,38 @@ const STATIC_RESS   = [
   '/img/icon-384.png',
   '/img/icon-512.png',
   '/img/mascot-squared.png',
-  '/img/mascot.png',  
+  '/img/mascot.png',
+
+  // example for external res
+  // 'https://fonts.google.com/icon?family=Material+Icons',
+
 ];
 
 self.addEventListener('install', (event) => {
   console.log(`service worker ${VS} - installed`);
 
+  event.waitUntil(  
+    (  async()  =>  { 
+      caches.open(MY_CACHE_2)
+        .then(myCache2 => {
+          myCache2.addAll(STATIC_RESS); // why no await?
+          console.log(`service worker ${VS} - preloading myCache2 finish`);
+        });
+    })()  
+  );
 
-  event.waitUntil((async () => {
-    // {cache: 'reload'} => new response pulled from network; not from HTTP cache
-    const cch1 = await caches.open(CACHE_DEFAULT);
-    await cch1.add(new Request('offline.html', {cache: 'reload'}));
-    console.log(`service worker ${VS} - install - caching 1`);
+
+  event.waitUntil((async () => {    
+    const myCache1 = await caches.open(MY_CACHE_1);
+    await myCache1.add(new Request('offline.html', { cache: 'reload' }));  // {cache: 'reload'} => force fetching from network; not from cache
+    console.log(`service worker ${VS} - preloading myCache1 finish`);
   })());
 
 
-  caches.open(CACHE_STATIC).then(cacheStatic => {
-    cacheStatic.addAll(STATIC_RESS);
-    console.log(`service worker ${VS} - install - caching 2`);
+  event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
 
-  });
 
+  
 
 });
 
@@ -52,8 +63,7 @@ self.addEventListener('activate', (event) => {
   console.log(`service worker ${VS} - activated`);
 
   event.waitUntil((async () => {
-    // Enable navigation preload if it's supported.
-    // See https://developers.google.com/web/updates/2017/02/navigation-preload
+    // https://developers.google.com/web/updates/2017/02/navigation-preload
     if ('navigationPreload' in self.registration) {
       await self.registration.navigationPreload.enable();
     }
@@ -65,38 +75,34 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
 
-  // call event.respondWith() for HTML page navigation
-  if (event.request.mode === 'navigate') {  
+  if (event.request.mode === 'navigate') { // only HTML pages
     console.log(`service worker ${VS} - fetch ${event.request.url}`);
 
     event.respondWith((async () => {
       try {
-        // First, try using navigation preload response if it's supported.
-        const preloadResponse = await event.preloadResponse;
+        const preloadResponse = await event.preloadResponse; // try navigation preload first
         if (preloadResponse) {
           return preloadResponse;
         }
-
         const networkResponse = await fetch(event.request);
         return networkResponse;
-      } catch (error) {
-        // catch is only triggered if an exception is thrown,
-        // which is likely due to a network error.
-        // catch() will *not* be called for HTTP response codes 4xx or 5xx       
-        console.log(`service worker ${VS} - fetch fail - serving offline; ${error}.`);
 
-        const cache = await caches.open(CACHE_DEFAULT);
-        const cachedResponse = await cache.match('offline.html');
+      } catch (error) {
+        // triggered on exceptions; likely due to network error.
+        // *not* triggered for HTTP response codes 4xx or 5xx
+        console.log(`service worker ${VS} - network fetch fail - ${error} - trying offline.`);
+
+        const myCache1 = await caches.open(MY_CACHE_1);
+        const cachedResponse = await myCache1.match('offline.html');
         return cachedResponse;
       }
     })());
   }
 
-  // If our if() condition is false, then this fetch handler won't intercept the
-  // request. If there are any other fetch handlers registered, they will get a
-  // chance to call event.respondWith(). If no fetch handlers call
-  // event.respondWith(), the request will be handled by the browser as if there
-  // were no service worker involvement.
+  // ... 
+  // other fetch handlers ... =>  event.respondWith()
+  // ...
+  // default browser fetch behaviour without service worker involvement
 });
 
 

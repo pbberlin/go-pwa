@@ -29,5 +29,8 @@ cd ..
 rm       -f      https-server.exe
 mv      ./cmd/server/server.exe  ./https-server.exe
 
-echo "success"
-sleep 10
+./https-server.exe
+
+# echo "success"
+# sleep 10
+
