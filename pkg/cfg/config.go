@@ -84,9 +84,9 @@ var defaultCfg = &cfg{
 	PrecompressGZIP: true,
 }
 
-func cSP(ts int64) string {
+func (cfg *cfg) cSP() string {
 
-	if ts < 1 {
+	if cfg.TS < 1 {
 		log.Fatal("Content security policy requires cfg.TS being greater zero")
 	}
 
@@ -107,8 +107,8 @@ func cSP(ts int64) string {
 	csp += fmt.Sprintf("default-src     https:; ")
 	csp += fmt.Sprintf("base-uri       'none'; ")
 	csp += fmt.Sprintf("object-src     'none'; ")
-	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", ts)
-	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", ts)
+	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.TS)
+	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.TS)
 	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
 
 	return csp
@@ -162,7 +162,7 @@ func Load(w http.ResponseWriter, r *http.Request) {
 
 	tmpCfg.TS = time.Now().UTC().Unix()
 
-	tmpCfg.CSP = cSP(tmpCfg.TS)
+	tmpCfg.CSP = tmpCfg.cSP()
 
 	//
 	{
