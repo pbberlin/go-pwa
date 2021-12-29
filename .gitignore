@@ -1,12 +1,15 @@
-https-server
-https-server-new
+# temporary
+*.webp
+
+server
+server-new
 
 ~*
 *.exe
 *.exe~
 *.gzip
 
-# static/**
+# app-bucket/**
 tmp/*
 tmp*
 

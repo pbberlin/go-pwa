@@ -57,8 +57,9 @@ type cfg struct {
 	// dynamically set on app init
 	TplMain *template.Template `json:"-"` // loaded from scaffold.tpl.html
 
-	JS  string `json:"-"` // created from ./static/js
-	CSS string `json:"-"` // created from ./static/css
+	CSP string `json:"-"` // content security policy
+	JS  string `json:"-"` // created from ./app-bucket/js
+	CSS string `json:"-"` // created from ./app-bucket/css
 
 	Dms string `json:"-"` // string representation of domains
 
@@ -83,14 +84,44 @@ var defaultCfg = &cfg{
 	PrecompressGZIP: true,
 }
 
+func cSP(ts int64) string {
+
+	if ts < 1 {
+		log.Fatal("Content security policy requires cfg.TS being greater zero")
+	}
+
+	/*
+		https://csp.withgoogle.com/docs/index.html
+		https://csp.withgoogle.com/docs/strict-csp.html#example
+
+		default-src     -  https: http:
+		script-src      - 'nonce-{random}'  'unsafe-inline'   - for old browsers
+		style-src-elem  - 'self' 'nonce-{random}'             - strangely, self is required
+		strict-dynamic  -  unused; 'script-xyz.js'can load additional scripts via script elements
+		object-src      -  sources for <object>, <embed>, <applet>
+		base-uri        - 'self' 'none' - for relative URLs
+		report-uri      -  https://your-report-collector.example.com/
+
+	*/
+	csp := ""
+	csp += fmt.Sprintf("default-src     https:; ")
+	csp += fmt.Sprintf("base-uri       'none'; ")
+	csp += fmt.Sprintf("object-src     'none'; ")
+	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", ts)
+	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", ts)
+	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
+
+	return csp
+}
+
 func Load(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
-	fmt.Fprint(w, "loading config\n")
+	fmt.Fprint(w, "config load start\n")
 
 	// write example with defaults
 	{
-		pth := "./static/json/tmp-example-config.json"
+		pth := "./app-bucket/json/tmp-example-config.json"
 		bts, err := json.MarshalIndent(defaultCfg, "", "\t")
 		if err != nil {
 			fmt.Fprintf(w, "error marshalling defaultCfg %v \n", err)
@@ -104,7 +135,7 @@ func Load(w http.ResponseWriter, r *http.Request) {
 
 	//
 	tmpCfg := cfg{}
-	pth := "./static/json/config.json"
+	pth := "./app-bucket/json/config.json"
 	bts, err := os.ReadFile(pth)
 	if err != nil {
 		fmt.Fprintf(w, "error opening %v, %v \n", pth, err)
@@ -131,9 +162,11 @@ func Load(w http.ResponseWriter, r *http.Request) {
 
 	tmpCfg.TS = time.Now().UTC().Unix()
 
+	tmpCfg.CSP = cSP(tmpCfg.TS)
+
 	//
 	{
-		pth := "./static/tpl/scaffold.tpl.html"
+		pth := "./app-bucket/tpl/scaffold.tpl.html"
 		var err error
 		tmpCfg.TplMain, err = template.ParseFiles(pth)
 		if err != nil {
@@ -143,6 +176,8 @@ func Load(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defaultCfg = &tmpCfg // replace pointer at once - should be threadsafe
+
+	fmt.Fprint(w, "config load stop\n\n")
 
 }
 

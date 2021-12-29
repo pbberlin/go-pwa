@@ -20,27 +20,7 @@ type Scaffold struct {
 func (sc *Scaffold) render(w http.ResponseWriter, cnt *strings.Builder) {
 
 	w.Header().Set("Content-Type", "text/html")
-	/*
-		https://csp.withgoogle.com/docs/index.html
-		https://csp.withgoogle.com/docs/strict-csp.html#example
-
-		default-src     -  https: http:
-		script-src      - 'nonce-{random}'  'unsafe-inline'   - for old browsers
-		style-src-elem  - 'self' 'nonce-{random}'             - strangely, self is required
-		strict-dynamic  -  unused; 'script-xyz.js'can load additional scripts via script elements
-		object-src      -  sources for <object>, <embed>, <applet>
-		base-uri        - 'self' 'none' - for relative URLs
-		report-uri      -  https://your-report-collector.example.com/
-
-	*/
-	csp := ""
-	csp += fmt.Sprintf("default-src     https:; ")
-	csp += fmt.Sprintf("base-uri       'none'; ")
-	csp += fmt.Sprintf("object-src     'none'; ")
-	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.Get().TS)
-	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.Get().TS)
-	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
-	w.Header().Set("Content-Security-Policy", csp)
+	w.Header().Set("Content-Security-Policy", cfg.Get().CSP)
 
 	if sc.Title == "" {
 		sc.Title = cfg.Get().Title

@@ -49,9 +49,14 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
+	mux.HandleFunc("/index.html", home)
 
-	mux.HandleFunc("/prepare-static", prepareStatic)
-	mux.HandleFunc("/config/load", cfg.Load)
+	// mux.HandleFunc("/prepare-static", prepareStatic)
+	// mux.HandleFunc("/config/load", cfg.Load)
+	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
+		cfg.Load(w, r)
+		prepareStatic(w, r)
+	})
 	mux.HandleFunc("/hello", plain)
 
 	if cfg.Get().PrecompressGZIP {

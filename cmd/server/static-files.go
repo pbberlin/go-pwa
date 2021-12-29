@@ -27,9 +27,9 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dirs := []string{
-		"./static/js/",
-		"./static/css/",
-		"./static/", // the service-worker.js
+		"./app-bucket/js/",
+		"./app-bucket/css/",
+		"./app-bucket/", // the service-worker.js
 	}
 
 	exceptions := map[string]bool{
@@ -136,7 +136,7 @@ func staticResources(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pth := "./static" + r.URL.Path
+	pth := "./app-bucket" + r.URL.Path
 
 	// bts, _ := os.ReadFile(pth)
 	// fmt.Fprint(w, bts)

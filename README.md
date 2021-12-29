@@ -1,6 +1,6 @@
 # HTTPS server prototype
 
-<img src="./static/img/mascot.png" style="float: left; width:8%; min-width: 160px; max-width: 22%; margin-right:5%; margin-bottom: 2%;"> 
+<img src="./appbucket/img/mascot.webp" style="float: left; width:8%; min-width: 160px; max-width: 22%; margin-right:5%; margin-bottom: 2%;"> 
 
 Keeping up with
 
@@ -31,3 +31,12 @@ Keeping up with
 
 Trying to combine it into a slim `go` program,  
 which is testable using [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse).
+
+## Next steps
+
+* Service worker should be a template,  
+having the version compiled into
+
+* CSS and JS files should have a "version" directory,  
+such as  
+`/js/32168/service-worker-registration.js`

@@ -1,13 +1,16 @@
 // from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
 
 
-const VS = 8; // version - only for forcing update
+const VS = 14; // version - only for forcing update
 
-const MY_CACHE_1 = 'offline';  // example 1
+const MY_CACHE_1 = `offline_v${VS}`;  // example 1
 
 
-const MY_CACHE_2  = 'static-resources'; // example 2
+const MY_CACHE_2 = `static-resources-v${VS}`; // example 2
+
 const STATIC_RESS   = [
+  '/index.html',
+
   '/css/progress-bar-2.css',
   '/css/styles-mobile.css',
   '/css/styles-quest-no-site-specified-a.css',
@@ -16,15 +19,15 @@ const STATIC_RESS   = [
   '/js/menu-and-form-control-keys.js',
   '/js/service-worker-register.js',
   '/js/validation.js',
-  '/img/icon-072.png',
-  '/img/icon-096.png',
-  '/img/icon-128.png',
-  '/img/icon-144.png',
-  '/img/icon-192.png',
-  '/img/icon-384.png',
-  '/img/icon-512.png',
-  '/img/mascot-squared.png',
-  '/img/mascot.png',
+  '/img/icon-072.webp',
+  '/img/icon-096.webp',
+  '/img/icon-128.webp',
+  '/img/icon-144.webp',
+  '/img/icon-192.webp',
+  '/img/icon-384.webp',
+  '/img/icon-512.webp',
+  '/img/mascot-squared.webp',
+  '/img/mascot.webp',
 
   // example for external res
   // 'https://fonts.google.com/icon?family=Material+Icons',
@@ -34,18 +37,23 @@ const STATIC_RESS   = [
 self.addEventListener('install', (event) => {
   console.log(`service worker ${VS} - installed`);
 
-  event.waitUntil(  
-    (  async()  =>  { 
+  event.waitUntil(
+    (  async()  =>  {
       caches.open(MY_CACHE_2)
         .then(myCache2 => {
-          myCache2.addAll(STATIC_RESS); // why no await?
+          if (true) {
+            myCache2.addAll(STATIC_RESS); // no return - error does not prevent entire install
+          }
+          if (true) {
+            // return myCache2.addAll("must.css"); // addAll returns promise - error prevents install
+          }
           console.log(`service worker ${VS} - preloading myCache2 finish`);
         });
-    })()  
+    })()
   );
 
-
-  event.waitUntil((async () => {    
+  /* 
+  event.waitUntil((async () => {
     const myCache1 = await caches.open(MY_CACHE_1);
     await myCache1.add(new Request('offline.html', { cache: 'reload' }));  // {cache: 'reload'} => force fetching from network; not from cache
     console.log(`service worker ${VS} - preloading myCache1 finish`);
@@ -54,11 +62,14 @@ self.addEventListener('install', (event) => {
 
   event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
 
+  */
 
-  
 
 });
 
+// cleanup previous service worker version caches
+//   dont block - prevents page loads
+//   https://www.youtube.com/watch?v=k1eoekN3nkA
 self.addEventListener('activate', (event) => {
   console.log(`service worker ${VS} - activated`);
 
@@ -69,7 +80,7 @@ self.addEventListener('activate', (event) => {
     }
   })());
 
-  // Tell the active service worker to take control of the page immediately.
+  // activated service worker to take control of the page immediately.
   self.clients.claim();
 });
 
@@ -88,18 +99,29 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
 
       } catch (error) {
-        // triggered on exceptions; likely due to network error.
+        // triggered on exceptions; mostly on network error
         // *not* triggered for HTTP response codes 4xx or 5xx
         console.log(`service worker ${VS} - network fetch fail - ${error} - trying offline.`);
 
-        const myCache1 = await caches.open(MY_CACHE_1);
-        const cachedResponse = await myCache1.match('offline.html');
-        return cachedResponse;
+        const myCache2   = await caches.open(MY_CACHE_2);
+        const cachedResp = await myCache2.match(event.request);
+        return cachedResp;
+
+        /* 
+        caches.open(MY_CACHE_2)
+          .then(myCache2 => {
+            myCache2.match(event.request).then(cachedResp => {
+              console.log(`service worker ${VS} - cachedResp ${cachedResp}`);
+              return cachedResp;
+            })
+          });
+
+         */
       }
     })());
   }
 
-  // ... 
+  // ...
   // other fetch handlers ... =>  event.respondWith()
   // ...
   // default browser fetch behaviour without service worker involvement
