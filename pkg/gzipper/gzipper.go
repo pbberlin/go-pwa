@@ -6,7 +6,6 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"strings"
 )
@@ -17,13 +16,13 @@ type gzFileWriter struct {
 	buf *bufio.Writer // on top of gzW
 }
 
-func New(fn string) (gzFileWriter, error) {
-	if !strings.HasSuffix(fn, ".gzip") {
-		fn += ".gzip"
+func New(fnDst string) (gzFileWriter, error) {
+	if !strings.HasSuffix(fnDst, ".gzip") {
+		fnDst += ".gzip"
 	}
-	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE, 0660)
+	f, err := os.OpenFile(fnDst, os.O_WRONLY|os.O_CREATE, 0660)
 	if err != nil {
-		return gzFileWriter{}, fmt.Errorf("error creating gzip base %v, %v", fn, err)
+		return gzFileWriter{}, fmt.Errorf("error creating gzip destination %v, %v", fnDst, err)
 	}
 	gzW := gzip.NewWriter(f)
 	buf := bufio.NewWriter(gzW)
@@ -38,23 +37,22 @@ func (gz gzFileWriter) WriteString(s string) (int, error) {
 	return (gz.buf).WriteString(s)
 }
 
-func (gz gzFileWriter) WriteFile(srcPth string) {
+func (gz gzFileWriter) WriteFile(srcPath string) error {
 
-	src, err := os.Open(srcPth)
+	src, err := os.Open(srcPath)
 	if err != nil {
-		log.Printf("error opening gzip source file %v, %v", srcPth, err)
-		return
+		return fmt.Errorf("error opening gzip src file %v, %w", srcPath, err)
 	}
 	defer src.Close()
 
 	n, err := io.Copy(gz.buf, src)
 	_ = n
 	if err != nil {
-		log.Printf("error writing file into gzip file: %v, %v", srcPth, err)
-		return
+		return fmt.Errorf("error writing filecontents of %v into %v, %w", srcPath, gz.f.Name(), err)
 	}
 
 	// log.Printf("%8v bytes written to %v from %v", n, gz.f.Name(), srcPth)
+	return nil
 
 }
 

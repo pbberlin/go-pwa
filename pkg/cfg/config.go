@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -64,7 +65,7 @@ type cfg struct {
 	Dms string `json:"-"` // string representation of domains
 
 	AppDir string `json:"-"` // do we still need this - or is ./... always sufficient?
-	TS     int64  `json:"-"` // timestamp of app start
+	TS     string `json:"-"` // prefix 'vs-'  and then timestamp of app start
 }
 
 var defaultCfg = &cfg{
@@ -86,10 +87,6 @@ var defaultCfg = &cfg{
 
 func (cfg *cfg) cSP() string {
 
-	if cfg.TS < 1 {
-		log.Fatal("Content security policy requires cfg.TS being greater zero")
-	}
-
 	/*
 		https://csp.withgoogle.com/docs/index.html
 		https://csp.withgoogle.com/docs/strict-csp.html#example
@@ -107,8 +104,8 @@ func (cfg *cfg) cSP() string {
 	csp += fmt.Sprintf("default-src     https:; ")
 	csp += fmt.Sprintf("base-uri       'none'; ")
 	csp += fmt.Sprintf("object-src     'none'; ")
-	csp += fmt.Sprintf("script-src     'nonce-%d' 'unsafe-inline'; ", cfg.TS)
-	csp += fmt.Sprintf("style-src-elem 'nonce-%d' 'self'; ", cfg.TS)
+	csp += fmt.Sprintf("script-src     'nonce-%s' 'unsafe-inline'; ", cfg.TS)
+	csp += fmt.Sprintf("style-src-elem 'nonce-%s' 'self'; ", cfg.TS)
 	csp += fmt.Sprintf("worker-src      https://*/service-worker.js; ")
 
 	return csp
@@ -160,7 +157,14 @@ func Load(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("error os.Getwd() %v \n", err)
 	}
 
-	tmpCfg.TS = time.Now().UTC().Unix()
+	// time stamp
+	// keeping only the last 6 digits
+	now := time.Now().UTC().Unix()
+	fst4 := float64(now) / float64(1000*1000) // first four digits
+	fst4 = math.Floor(fst4) * float64(1000*1000)
+	now -= int64(fst4)
+
+	tmpCfg.TS = fmt.Sprintf("vs-%d", now)
 
 	tmpCfg.CSP = tmpCfg.cSP()
 

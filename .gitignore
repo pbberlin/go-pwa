@@ -6,6 +6,9 @@ server-new
 *.exe~
 *.gzip
 
+# static resources
+vs-*/**
+
 # app-bucket/**
 tmp/*
 tmp*
