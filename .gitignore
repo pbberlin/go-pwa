@@ -9,6 +9,9 @@ server-new
 # static resources
 vs-*/**
 
+# get regenerated from tpl
+app-bucket/js-service-worker/service-worker.js
+
 # app-bucket/**
 tmp/*
 tmp*

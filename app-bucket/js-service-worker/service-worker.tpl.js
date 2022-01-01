@@ -1,7 +1,7 @@
 // from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
 
 
-const VS = 14; // version - only for forcing update
+const VS = "{{.Version}}"; // version - only for forcing update
 
 const MY_CACHE_1 = `offline_v${VS}`;  // example 1
 
@@ -9,29 +9,7 @@ const MY_CACHE_1 = `offline_v${VS}`;  // example 1
 const MY_CACHE_2 = `static-resources-v${VS}`; // example 2
 
 const STATIC_RESS   = [
-  '/index.html',
-
-  '/css/progress-bar-2.css',
-  '/css/styles-mobile.css',
-  '/css/styles-quest-no-site-specified-a.css',
-  '/css/styles-quest.css',
-  '/css/styles.css',
-  '/js/menu-and-form-control-keys.js',
-  '/js/service-worker-register.js',
-  '/js/validation.js',
-  '/img/icon-072.webp',
-  '/img/icon-096.webp',
-  '/img/icon-128.webp',
-  '/img/icon-144.webp',
-  '/img/icon-192.webp',
-  '/img/icon-384.webp',
-  '/img/icon-512.webp',
-  '/img/mascot-squared.webp',
-  '/img/mascot.webp',
-
-  // example for external res
-  // 'https://fonts.google.com/icon?family=Material+Icons',
-
+  {{.ListOfFiles}}
 ];
 
 self.addEventListener('install', (event) => {

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"net/http"
@@ -17,22 +19,80 @@ func init() {
 	// cfg.RunHandleFunc(prepareStatic, "/prepare-static")
 }
 
+var staticFiles = []string{
+	"/index.html",
+	"/offline.html",
+
+	"/css/progress-bar-2.css",
+	"/css/styles-mobile.css",
+	"/css/styles-quest-no-site-specified-a.css",
+	"/css/styles-quest.css",
+	"/css/styles.css",
+	"/js/menu-and-form-control-keys.js",
+	"/js/service-worker-register.js",
+	"/js/validation.js",
+	"/img/icon-072.webp",
+	"/img/icon-096.webp",
+	"/img/icon-128.webp",
+	"/img/icon-144.webp",
+	"/img/icon-192.webp",
+	"/img/icon-384.webp",
+	"/img/icon-512.webp",
+	"/img/mascot-squared.webp",
+	"/img/mascot.webp",
+
+	// example for external res
+	// "https://fonts.google.com/icon?family=Material+Icons",
+
+}
+
+func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
+	pth1 := "./app-bucket/js-service-worker/service-worker.tpl.js"
+	t, err := template.ParseFiles(pth1)
+	if err != nil {
+		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
+		return
+	}
+
+	bts := &bytes.Buffer{}
+
+	data := struct {
+		Version     string
+		ListOfFiles template.HTML // neither .JS nor .JSStr do work
+	}{
+		Version:     cfg.Get().TS,
+		ListOfFiles: template.HTML("'" + strings.Join(staticFiles, "',\n  '") + "'"),
+	}
+
+	err = t.Execute(bts, data)
+	if err != nil {
+		fmt.Fprintf(w, "could not execute service worker template %v\n", err)
+		return
+	}
+
+	pth2 := "./app-bucket/js-service-worker/service-worker.js"
+	os.WriteFile(pth2, bts.Bytes(), 0644)
+}
+
 func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "prepare static files\n")
 
+	prepareServiceWorker(w, req)
+	//
+	//
 	dirs := []string{
 		"./app-bucket/js/",
+		"./app-bucket/js-service-worker/",
 		"./app-bucket/css/",
-		"./app-bucket/", // the service-worker.js
 	}
 
 	exceptions := map[string]bool{
 		// "service-worker.js": true,
 	}
 
-	for idx, dirSrc := range dirs {
+	for dirIdx, dirSrc := range dirs {
 
 		dirDst := path.Join(dirSrc, fmt.Sprint(cfg.Get().TS))
 		err := os.MkdirAll(dirDst, 0755)
@@ -73,11 +133,11 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 			fmt.Fprintf(w, "\t %v\n", file.Name())
 
-			if idx == 0 {
+			if dirIdx == 0 {
 				// fmt.Fprintf(sb, `	<script src="/js/%v?v=%d" nonce="%d" ></script>`, file.Name(), cfg.Get().TS, cfg.Get().TS)
 				fmt.Fprintf(sb, `	<script src="/js/%s/%v" nonce="%s" ></script>`, cfg.Get().TS, file.Name(), cfg.Get().TS)
 			}
-			if idx == 1 {
+			if dirIdx == 2 {
 				// fmt.Fprintf(sb, `	<link href="/css/%s?v=%d" nonce="%d" rel="stylesheet" type="text/css" />`, file.Name(), cfg.Get().TS, cfg.Get().TS)
 				fmt.Fprintf(sb, `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" />`, cfg.Get().TS, file.Name(), cfg.Get().TS)
 			}
@@ -105,10 +165,10 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 		}
 
-		if idx == 0 {
+		if dirIdx == 0 {
 			cfg.Set().JS = sb.String()
 		}
-		if idx == 1 {
+		if dirIdx == 2 {
 			cfg.Set().CSS = sb.String()
 		}
 
@@ -132,6 +192,7 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "image/x-icon")
 	case strings.HasPrefix(r.URL.Path, "/service-worker.js"):
 		w.Header().Set("Content-Type", "application/javascript")
+		r.URL.Path = fmt.Sprintf("/js-service-worker/%v/service-worker.js", cfg.Get().TS)
 
 	//
 	// types .js, .css, .webp, .json
@@ -156,7 +217,9 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 
 	if cfg.Get().PrecompressGZIP {
 		// not for images or json
-		if strings.HasPrefix(r.URL.Path, "/js/") || strings.HasPrefix(r.URL.Path, "/css/") {
+		if strings.HasPrefix(r.URL.Path, "/js/") ||
+			strings.HasPrefix(r.URL.Path, "/js-service-worker/") ||
+			strings.HasPrefix(r.URL.Path, "/css/") {
 			pth += ".gzip"
 			w.Header().Set("Content-Encoding", "gzip")
 		}
