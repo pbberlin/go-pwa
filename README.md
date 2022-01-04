@@ -3,36 +3,41 @@
 <img src="./app-bucket/img/mascot.webp" style="float: left; width:8%; min-width: 160px; max-width: 22%; margin-right:5%; margin-bottom: 2%;"> 
 
 Combining the most advanced `golang` techniques  
-into a [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse) compatible web app.
+into a [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse) approved web app
 
 * HTTP/2
-
-* HTTPS and HTTP in coexistence or redirecting
 
 * Let's encrypt certification
 
 * Localhost certificate based on [Filipo Valsordas tool](https://github.com/FiloSottile/mkcert)
 
+* HTTP redirecting or co-existing
+
 * Content Security Policies (`CSP`)  
   against CSRF
 
-* Precompress static content on app start  
-  or on the fly
+* Consistent versioning of HTML, JS, CSS, IMG,  
+  _and_ service worker caching
 
-* Coherent new-versioning of HTML, JS, CSS  
-  after server side changes
+* Adding a new version at any time by admin http request,  
+  while older version files remain accessible
 
-* HTML template for PWA
+* Make changes to your app at any time,  
+  without breaking service worker caching
 
-* PWA manifest,  
-  PWA service worker
-  * Register + Install
-    * Prime the cache
-  * Activate (`update on reload` or re-open browser)
-  * Fetch
-    * Updating cache
+* Server side gzip precompression of CSS and JS files;  
+  integrated with version creation
 
-## Next steps
+* Fully developed PWA HTML template
 
-* Service worker should be a template,  
-having the version compiled into
+* Fully developed PWA manifest
+
+* PWA service worker with `cache-first` for static files
+
+* Fallback to `/offline.html` for unprecedented user experience
+
+  * PWA service worker register and install
+
+  * PWA service worker pre-caching on install
+
+  * PWA service worker fetch with `cache-first`

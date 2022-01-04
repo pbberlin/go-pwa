@@ -7,7 +7,7 @@ server-new
 *.gzip
 
 # static resources
-vs-*/**
+**/vs-*/**
 
 # get regenerated from tpl
 app-bucket/js-service-worker/service-worker.js

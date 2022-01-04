@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -19,39 +20,73 @@ func init() {
 	// cfg.RunHandleFunc(prepareStatic, "/prepare-static")
 }
 
-var staticFiles = []string{
+var staticFilesSeed = []string{
 	"/index.html",
 	"/offline.html",
 
-	"/css/progress-bar-2.css",
-	"/css/styles-mobile.css",
-	"/css/styles-quest-no-site-specified-a.css",
-	"/css/styles-quest.css",
-	"/css/styles.css",
-	"/js/menu-and-form-control-keys.js",
-	"/js/service-worker-register.js",
-	"/js/validation.js",
-	"/img/icon-072.webp",
-	"/img/icon-096.webp",
-	"/img/icon-128.webp",
-	"/img/icon-144.webp",
-	"/img/icon-192.webp",
-	"/img/icon-384.webp",
-	"/img/icon-512.webp",
-	"/img/mascot-squared.webp",
-	"/img/mascot.webp",
+	// ... dynamic css, js, webp
 
 	// example for external res
 	// "https://fonts.google.com/icon?family=Material+Icons",
 
 }
 
+func filesOfDir(dirSrc string) ([]fs.FileInfo, error) {
+	dirHandle, err := os.Open(dirSrc) // open
+	if err != nil {
+		return nil, fmt.Errorf("could not open dir %v, error %v\n", dirSrc, err)
+	}
+	files, err := dirHandle.Readdir(0) // get files
+	if err != nil {
+		return nil, fmt.Errorf("could not read dir contents of %v, error %v\n", dirSrc, err)
+	}
+	return files, nil
+}
+
 func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
+
 	pth1 := "./app-bucket/js-service-worker/service-worker.tpl.js"
 	t, err := template.ParseFiles(pth1)
 	if err != nil {
 		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
 		return
+	}
+
+	staticFiles := make([]string, len(staticFilesSeed), 16)
+	copy(staticFiles, staticFilesSeed)
+
+	dirs := []string{
+		"./app-bucket/js/",
+		"./app-bucket/css/",
+		"./app-bucket/img/",
+	}
+
+	for _, dirSrc := range dirs {
+
+		files, err := filesOfDir(dirSrc)
+		if err != nil {
+			fmt.Fprint(w, err)
+			return
+		}
+
+		for _, file := range files {
+
+			if file.IsDir() {
+				continue
+			}
+
+			if strings.HasSuffix(file.Name(), ".png") {
+				continue
+			}
+			if strings.HasPrefix(file.Name(), "tmp-") {
+				continue
+			}
+
+			// fmt.Fprintf(w, "\t %v\n", file.Name())
+			pth := path.Join(dirSrc, cfg.Get().TS, file.Name())
+			pth = strings.Replace(pth, "app-bucket/", "./", 1)
+			staticFiles = append(staticFiles, pth)
+		}
 	}
 
 	bts := &bytes.Buffer{}
@@ -74,22 +109,22 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 	os.WriteFile(pth2, bts.Bytes(), 0644)
 }
 
+//
+//
 func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "prepare static files\n")
 
 	prepareServiceWorker(w, req)
+
 	//
 	//
 	dirs := []string{
 		"./app-bucket/js/",
 		"./app-bucket/js-service-worker/",
 		"./app-bucket/css/",
-	}
-
-	exceptions := map[string]bool{
-		// "service-worker.js": true,
+		"./app-bucket/img/",
 	}
 
 	for dirIdx, dirSrc := range dirs {
@@ -105,23 +140,13 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 		sb := &strings.Builder{}
 
-		dirHandle, err := os.Open(dirSrc) // open
+		files, err := filesOfDir(dirSrc)
 		if err != nil {
-			fmt.Fprintf(w, "could not open %v, error %v\n", dirSrc, err)
-			return
-		}
-		files, _ := dirHandle.Readdir(0) // get files
-		if err != nil {
-			fmt.Fprintf(w, "could not read contents of %v, error %v\n", dirSrc, err)
+			fmt.Fprint(w, err)
 			return
 		}
 
 		for _, file := range files {
-
-			if exceptions[file.Name()] {
-				fmt.Fprintf(w, "\t  skipping exception %v\n", file.Name())
-				continue
-			}
 
 			if strings.HasSuffix(file.Name(), ".gzip") {
 				continue
@@ -131,37 +156,54 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 				continue
 			}
 
-			fmt.Fprintf(w, "\t %v\n", file.Name())
-
 			if dirIdx == 0 {
-				// fmt.Fprintf(sb, `	<script src="/js/%v?v=%d" nonce="%d" ></script>`, file.Name(), cfg.Get().TS, cfg.Get().TS)
 				fmt.Fprintf(sb, `	<script src="/js/%s/%v" nonce="%s" ></script>`, cfg.Get().TS, file.Name(), cfg.Get().TS)
+				fmt.Fprint(sb, "\n")
 			}
 			if dirIdx == 2 {
-				// fmt.Fprintf(sb, `	<link href="/css/%s?v=%d" nonce="%d" rel="stylesheet" type="text/css" />`, file.Name(), cfg.Get().TS, cfg.Get().TS)
 				fmt.Fprintf(sb, `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" />`, cfg.Get().TS, file.Name(), cfg.Get().TS)
+				fmt.Fprint(sb, "\n")
 			}
-			fmt.Fprint(sb, "\n")
+
+			fnSrc := path.Join(dirSrc, file.Name())
+			fnDst := path.Join(dirDst, file.Name())
 
 			//
-			// closure because of defer
-			fnc := func() {
-				fnSrc := path.Join(dirSrc, file.Name())
-				fnDst := path.Join(dirDst, file.Name())
-				gzw, err := gzipper.New(fnDst)
-				if err != nil {
-					fmt.Fprint(w, err)
-					return
+			if dirIdx < 3 {
+				//
+				// closure because of defer
+				zipIt := func() {
+					gzw, err := gzipper.New(fnDst)
+					if err != nil {
+						fmt.Fprint(w, err)
+						return
+					}
+					defer gzw.Close()
+					// gzw.WriteString("gzipper.go created this file.\n")
+					err = gzw.WriteFile(fnSrc)
+					if err != nil {
+						fmt.Fprint(w, err)
+						return
+					}
 				}
-				defer gzw.Close()
-				// gzw.WriteString("gzipper.go created this file.\n")
-				err = gzw.WriteFile(fnSrc)
-				if err != nil {
-					fmt.Fprint(w, err)
-					return
-				}
+				zipIt()
 			}
-			fnc()
+			//
+			if dirIdx == 3 {
+				ext := path.Ext(file.Name())
+				if ext != ".webp" {
+					continue
+				}
+
+				bts, err := os.ReadFile(fnSrc)
+				if err != nil {
+					fmt.Fprint(w, err)
+					return
+				}
+				os.WriteFile(fnDst, bts, 0644)
+			}
+
+			fmt.Fprintf(w, "\t %v\n", file.Name())
 
 		}
 
@@ -205,6 +247,11 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.Path, "/img/"):
 		w.Header().Set("Content-Type", "image/webp")
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
+
+		// todo: versioning of images
+		// replacement := fmt.Sprintf("/js/%v/", cfg.Get().TS)
+		// r.URL.Path = strings.Replace(r.URL.Path, "/js/", replacement, 1)
+
 	case strings.HasPrefix(r.URL.Path, "/json/"):
 		w.Header().Set("Content-Type", "application/json")
 	default:
@@ -216,7 +263,7 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 	pth := "./app-bucket" + r.URL.Path
 
 	if cfg.Get().PrecompressGZIP {
-		// not for images or json
+		// not for images, not for json
 		if strings.HasPrefix(r.URL.Path, "/js/") ||
 			strings.HasPrefix(r.URL.Path, "/js-service-worker/") ||
 			strings.HasPrefix(r.URL.Path, "/css/") {
@@ -228,6 +275,7 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(pth)
 	if err != nil {
 		log.Printf("error opening %v, %v", pth, err)
+		log.Printf("\tfrom %+v", r.Header.Get("Referer"))
 		return
 	}
 	defer file.Close()

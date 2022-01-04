@@ -5,7 +5,7 @@ if ('serviceWorker' in navigator) {
 	window.addEventListener('load', () => {
 		// must be in root dir
 		navigator.serviceWorker.register('/service-worker.js')
-			.then((reg)  => console.log("service worker - registered", reg))
-			.catch((err) => console.log("service worker - NOT reg'ed", err));
+			.then((reg)  => console.log("service worker - registered", {reg}))  // {} leads to shortened dump
+			.catch((err) => console.log("service worker - NOT reg'ed",  err ));
 	});
 }

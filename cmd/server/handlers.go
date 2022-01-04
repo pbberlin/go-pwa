@@ -17,6 +17,20 @@ func home(w http.ResponseWriter, r *http.Request) {
 	sc.render(w, cnt)
 }
 
+func offline(w http.ResponseWriter, r *http.Request) {
+	cnt := &strings.Builder{}
+	fmt.Fprintf(cnt,
+		`<p>
+			This beautiful offline page<br>
+			provides a way better "user experience".
+
+		</p>`)
+
+	sc := &Scaffold{}
+	sc.Title = "You are offline"
+	sc.render(w, cnt)
+}
+
 func plain(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "This is an example server.\n")

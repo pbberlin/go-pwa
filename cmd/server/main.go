@@ -50,6 +50,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
 	mux.HandleFunc("/index.html", home)
+	mux.HandleFunc("/offline.html", offline)
 
 	// mux.HandleFunc("/prepare-static", prepareStatic)
 	// mux.HandleFunc("/config/load", cfg.Load)

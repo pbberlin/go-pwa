@@ -64,8 +64,10 @@ type cfg struct {
 
 	Dms string `json:"-"` // string representation of domains
 
-	AppDir string `json:"-"` // do we still need this - or is ./... always sufficient?
+	AppDir string `json:"-"` // server side app dir; do we still need this - or is ./... always sufficient?
 	TS     string `json:"-"` // prefix 'vs-'  and then timestamp of app start
+
+	PrefURI string `json:"pref_uri,omitempty"`
 }
 
 var defaultCfg = &cfg{
