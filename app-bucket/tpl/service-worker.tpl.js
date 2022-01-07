@@ -4,7 +4,7 @@
 const VS = "{{.Version}}"; // version - only for forcing update
 
 const MY_CACHE_1 = `offline_${VS}`;
-const MY_CACHE_2 = `static-resources-v${VS}`;
+const MY_CACHE_2 = `static-resources-${VS}`;
 
 const STATIC_RESS   = [
   {{.ListOfFiles}}

@@ -43,10 +43,11 @@ func filesOfDir(dirSrc string) ([]fs.FileInfo, error) {
 	return files, nil
 }
 
+// prepareServiceWorker
 func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 
-	pth1 := "./app-bucket/js-service-worker/service-worker.tpl.js"
-	t, err := template.ParseFiles(pth1)
+	srcPth := "./app-bucket/tpl/service-worker.tpl.js"
+	t, err := template.ParseFiles(srcPth)
 	if err != nil {
 		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
 		return
@@ -105,8 +106,8 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	pth2 := "./app-bucket/js-service-worker/service-worker.js"
-	os.WriteFile(pth2, bts.Bytes(), 0644)
+	dstPth := "./app-bucket/js-service-worker/service-worker.js"
+	os.WriteFile(dstPth, bts.Bytes(), 0644)
 }
 
 //
