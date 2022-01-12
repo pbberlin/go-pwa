@@ -6,7 +6,7 @@
 
 # argument -o only works from within local directory
 # cd ..\cmd\server\
-# go build -v -race   -o "https-server.exe"
+# go build -v -race   -o "server.exe"
 
 
 # go build -v -race ./cmd/server/main.go

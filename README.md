@@ -1,6 +1,6 @@
-# HTTPS server prototype
+# Golang PWA prototype
 
-<img src="./app-bucket/img/mascot.webp" style="float: left; width:8%; min-width: 160px; max-width: 22%; margin-right:5%; margin-bottom: 2%;"> 
+<img src="./app-bucket/img/mascot.webp" style="float: left; width:20%; min-width: 140px; max-width: 20%; margin-right:5%; margin-bottom: 2%;"> 
 
 Combining the most advanced `golang` techniques  
 into a [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse) approved web app
