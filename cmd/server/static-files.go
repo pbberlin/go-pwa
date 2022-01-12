@@ -192,7 +192,7 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 			//
 			if dirIdx == 3 {
 				ext := path.Ext(file.Name())
-				if ext != ".webp" {
+				if ext != ".webp" && ext != ".ico" {
 					continue
 				}
 
