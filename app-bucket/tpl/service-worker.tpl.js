@@ -1,44 +1,64 @@
 // from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
 
+// time of start of program
+let tmSt = new Date().getTime();
 
-const VS = "{{.Version}}"; // version - only for forcing update
+const tmSince = () => {
+  const tm = new Date().getTime();
+  let diff = `${tm - tmSt}`;
+  return diff;
+}
 
-const MY_CACHE_1 = `offline_${VS}`;
-const MY_CACHE_2 = `static-resources-${VS}`;
+
+
+const VS = "{{.Version}}"; // version - also forcing update
+
+
+
+// const MY_C_old = `offline_${VS}`;
+const MY_CACHE = `static-resources-${VS}`;
 
 const STATIC_RESS   = [
   {{.ListOfFiles}}
 ];
 
 self.addEventListener('install', (event) => {
-  console.log(`service worker ${VS} - installed`);
-
-  event.waitUntil(
-    (  async()  =>  {
-      caches.open(MY_CACHE_2)
-        .then(myCache2 => {
-          if (true) {
-            myCache2.addAll(STATIC_RESS); // no return - error does not prevent entire install
-          }
-          if (true) {
-            // return myCache2.addAll("must.css"); // addAll returns promise - error prevents install
-          }
-          console.log(`service worker ${VS} - preloading myCache2 finish`);
-        });
-    })()
-  );
-
-  /* 
-  event.waitUntil((async () => {
-    const myCache1 = await caches.open(MY_CACHE_1);
-    await myCache1.add(new Request('offline.html', { cache: 'reload' }));  // {cache: 'reload'} => force fetching from network; not from cache
-    console.log(`service worker ${VS} - preloading myCache1 finish`);
-  })());
 
 
-  event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
+  // {cache: 'reload'} => force fetching from network; not from html browser cache
 
-  */
+  console.log(`service worker ${VS} - install - start ${tmSince()}ms`);
+
+
+
+  const cOpts1 = {
+    cache:  "reload",
+    method: "GET",
+    // headers: new Headers({ 'Content-Type': 'application/json' }),
+  };
+
+
+  const fc = async () => {
+    const cch = await caches.open(MY_CACHE);
+
+    let proms = [];
+    STATIC_RESS.forEach(res => {
+      proms.push(  cch.add(  new Request(res, cOpts1) ) );
+    });
+    const allPr = await Promise.all(proms);
+    console.log(`service worker ${VS} - preloading status ${allPr}`);
+
+    cch.put('/pets.json', new Response('{"tom": "cat", "jerry": "mouse"}') ); // no options possible
+
+  };
+
+
+  // event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
+  event.waitUntil( fc() );
+
+  console.log(`service worker ${VS} - install - stop  ${tmSince()}ms`);
+
+
 
 
 });
@@ -79,11 +99,11 @@ self.addEventListener('fetch', (event) => {
         // *not* triggered for HTTP response codes 4xx or 5xx
         console.log(`service worker ${VS} - network fetch fail - ${error} - trying offline.`);
 
-        const myCache2   = await caches.open(MY_CACHE_2);
+        const myCache2   = await caches.open(MY_CACHE);
         const cachedResp = await myCache2.match(event.request);
         return cachedResp;
 
-        /* 
+        /*
         caches.open(MY_CACHE_2)
           .then(myCache2 => {
             myCache2.match(event.request).then(cachedResp => {

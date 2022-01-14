@@ -56,6 +56,7 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 	staticFiles := make([]string, len(staticFilesSeed), 16)
 	copy(staticFiles, staticFilesSeed)
 
+	// service worker cache
 	dirs := []string{
 		"./app-bucket/js/",
 		"./app-bucket/css/",

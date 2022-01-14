@@ -1,8 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/web-manifest-combined.json",
   "name": "HTTPS Server",
-  "short_name": "HTTPS Srv",
-  "description": "HTTPS server prototype",
+  "short_name": "PWA Proto",
+  "description": "PWA HTTPS prototype",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#fff",
