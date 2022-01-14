@@ -1,5 +1,7 @@
 #!/bin/sh
 
+cd ../app-bucket
+
 # check
 /usr/bin/find . -type d -name "vs-*" 
 

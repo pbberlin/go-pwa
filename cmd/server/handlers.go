@@ -7,6 +7,12 @@ import (
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
+
+	if r.Form.Get("refuse") != "" {
+		w.WriteHeader(201)
+		return
+	}
+
 	cnt := &strings.Builder{}
 	fmt.Fprintf(cnt, "<p>Hello, TLS user </p>\n")
 	fmt.Fprintf(cnt, "<p>Your config: </p>\n")
