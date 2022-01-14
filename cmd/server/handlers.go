@@ -2,14 +2,20 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
 
+	err := r.ParseForm()
+	if err != nil {
+		log.Printf("parsing form %v", err)
+	}
 	if r.Form.Get("refuse") != "" {
-		w.WriteHeader(201)
+		w.WriteHeader(401)
+		log.Print("offline 401")
 		return
 	}
 
