@@ -163,7 +163,8 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 				fmt.Fprint(sb, "\n")
 			}
 			if dirIdx == 2 {
-				fmt.Fprintf(sb, `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" />`, cfg.Get().TS, file.Name(), cfg.Get().TS)
+				// media="screen" to prevent lighthouse from flagging resource as blocking
+				fmt.Fprintf(sb, `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" media="screen" />`, cfg.Get().TS, file.Name(), cfg.Get().TS)
 				fmt.Fprint(sb, "\n")
 			}
 

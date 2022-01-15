@@ -9,10 +9,16 @@ const tmSince = () => {
   return `${tm - tmSt}`;
 }
 
+const tmReset = () => {
+  tmSt = new Date().getTime();
+}
+
 
 
 const VS = "{{.Version}}"; // version - also forcing update
-const MY_CACHE = `static-resources-${VS}`;
+const CACHE_KEY = `static-resources-${VS}`;
+
+const cacheNaviResps = true; // cache navigational responses
 
 const reqOpts = {
   cache: "reload",   // => force fetching from network; not from html browser cache
@@ -39,7 +45,7 @@ self.addEventListener('install', (evt) => {
 
 
   const fc = async () => {
-    const cch = await caches.open(MY_CACHE);
+    const cch = await caches.open(CACHE_KEY);
 
     let proms = [];
     STATIC_RESS.forEach( res => {
@@ -78,7 +84,7 @@ self.addEventListener('activate', (evt) => {
     const keys = await caches.keys();
     return await Promise.all(
       keys
-      .filter(  key => key !== MY_CACHE   ) // return true to remove this cache
+      .filter(  key => key !== CACHE_KEY   ) // return true to remove this cache
       .map(     key => caches.delete(key) )
     );
   };
@@ -94,11 +100,13 @@ self.addEventListener('activate', (evt) => {
 
 self.addEventListener('fetch', (evt) => {
 
+  tmReset();
+
   const fc = async () => {
 
     if (1>2) {
       console.log(evt.request.url, evt.request.method, evt.request.headers, evt.request.body);
-      const cch = await caches.open(MY_CACHE);
+      const cch = await caches.open(CACHE_KEY);
       const rsp = await cch.match('/pets.json');
       console.log(`    rsp pets is ${rsp}`);
     }
@@ -111,6 +119,11 @@ self.addEventListener('fetch', (evt) => {
       if (preRsp) {
         if (!preRsp.ok) throw Error("preRsp status code not 200-299");
         console.log(`sw-${VS} - fetch - prel  ${tmSince()}ms - preRsp ${preRsp}`);
+        if (cacheNaviResps) {
+          const cch = await caches.open(CACHE_KEY);
+          // cch.add(preRsp);
+          cch.put(evt.request.url, preRsp.clone());
+        }
         return preRsp;
       }
 
@@ -118,6 +131,11 @@ self.addEventListener('fetch', (evt) => {
       const netRsp = await fetch(evt.request);  // network response
       if (!netRsp.ok) throw Error("netRsp status code not 200-299");
       console.log(`sw-${VS} - fetch - net   ${tmSince()}ms - netRsp ${netRsp}`);
+      if (cacheNaviResps) {
+        const cch = await caches.open(CACHE_KEY);
+        // cch.add(netRsp);
+        cch.put(evt.request.url, netRsp.clone());
+      }
       return netRsp;
 
     } catch (error) {
@@ -126,10 +144,10 @@ self.addEventListener('fetch', (evt) => {
       // codes 4xx or 5xx jump here via if (!rsp.ok) throw...
       console.log(`sw-${VS} - fetch - error ${tmSince()}ms - ${error}`);
 
-      const cch = await caches.open(MY_CACHE);
+      const cch = await caches.open(CACHE_KEY);
       const rsp = await cch.match(evt.request, matchOpts);
       if (rsp) {
-        console.log(`sw-${VS} - fetch - cache ${tmSince()}ms - cachedResp ${rsp}`);
+        console.log(`sw-${VS} - fetch - cache ${tmSince()}ms - cachedResp ${rsp.url}`);
         return rsp;
       } else {
         const anotherRsp = new Response( '<p>Neither network nor cache available</p>',  { headers: { 'Content-Type': 'text/html' } });
