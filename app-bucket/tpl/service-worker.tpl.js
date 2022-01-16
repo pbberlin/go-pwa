@@ -1,5 +1,14 @@
-// from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
-//      https://developers.google.com/web/ilt/pwa/caching-files-with-service-worker
+/* 
+from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
+    https://developers.google.com/web/ilt/pwa/caching-files-with-service-worker
+
+fetch including cookies: 
+  fetch(url, {credentials: 'include'})
+
+non CORS fail by default; avoid by
+  new Request(urlToPrefetch, { mode: 'no-cors' }
+
+*/
 
 // time of start of program
 let tmSt = new Date().getTime();
@@ -17,6 +26,14 @@ const tmReset = () => {
 
 const VS = "{{.Version}}"; // version - also forcing update
 const CACHE_KEY = `static-resources-${VS}`;
+const STATIC = {
+  "image": true,
+  "style": true,
+  "script": true,
+  // "font": true,
+  // "video": true,
+}
+
 
 const cacheNaviResps = true; // cache navigational responses
 
@@ -40,6 +57,7 @@ const STATIC_RESS   = [
   {{.ListOfFiles}}
 ];
 
+// on failure: go to chrome://serviceworker-internals and check "Open DevTools window and pause
 self.addEventListener('install', (evt) => {
   console.log(`sw-${VS} - install  - start ${tmSince()}ms`);
 
@@ -102,7 +120,7 @@ self.addEventListener('fetch', (evt) => {
 
   tmReset();
 
-  const fc = async () => {
+  const fcDoc = async () => {
 
     if (1>2) {
       console.log(evt.request.url, evt.request.method, evt.request.headers, evt.request.body);
@@ -121,8 +139,7 @@ self.addEventListener('fetch', (evt) => {
         console.log(`sw-${VS} - fetch - prel  ${tmSince()}ms - preRsp ${preRsp}`);
         if (cacheNaviResps) {
           const cch = await caches.open(CACHE_KEY);
-          // cch.add(preRsp);
-          cch.put(evt.request.url, preRsp.clone());
+          cch.put(evt.request.url, preRsp.clone()); // response is a stream - browser and cache will consume the response
         }
         return preRsp;
       }
@@ -151,17 +168,61 @@ self.addEventListener('fetch', (evt) => {
         return rsp;
       } else {
         const anotherRsp = new Response( '<p>Neither network nor cache available</p>',  { headers: { 'Content-Type': 'text/html' } });
+        // todo respond offline.html
         return anotherRsp;
       }
     }
   };
 
+  const fcReval = async () => {
+    const cch = await caches.open(CACHE_KEY);
+    const rsp = await fetch(evt.request);
+    cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
+    console.log(`    static rvl - ${evt.request.url} - ${tmSince()}ms`); 
+  }
 
+  /* 
+    serve from cache - and revalidate asynchroneously
+
+  */
+  const fcSttc = async () => {
+    try {
+
+      const rspCch = await caches.match(evt.request);
+      if (rspCch) {
+        Promise.resolve().then( fcReval() );
+        console.log(`    static cch - ${evt.request.url} - ${tmSince()}ms`);
+        return rspCch;
+      } 
+      const rspNet = await fetch(evt.request);
+
+      {
+        const cch = await caches.open(CACHE_KEY);
+        cch.put(evt.request.url, rspNet.clone()); // response is a stream - browser and cache will consume the response
+      }
+      console.log(`    static net - ${evt.request.url} - ${tmSince()}ms`);
+      return rspNet;
+
+
+    } catch (error) {
+      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error}`);
+    }
+
+  };
+
+
+
+  // https://medium.com/dev-channel/service-worker-caching-strategies-based-on-request-types-57411dd7652c
+  const dest = evt.request.destination;
+ 
 
   if (evt.request.mode === 'navigate') { // only HTML pages
-    console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${evt.request.url}`);
-    evt.respondWith( fc() );
+    // console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${evt.request.url}`);
+    evt.respondWith( fcDoc() );
     console.log(`sw-${VS} - fetch - navi stop  ${tmSince()}ms - ${evt.request.url}`);
+  } else if ( STATIC[dest] ) {      
+    evt.respondWith( fcSttc() );      
+    console.log(`sw-${VS} - fetch - sttc stop  - dest ${dest} - ${evt.request.url} - mode ${evt.request.mode}`);
   }
 
   // ...
