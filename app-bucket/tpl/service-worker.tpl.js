@@ -26,12 +26,14 @@ const tmReset = () => {
 
 const VS = "{{.Version}}"; // version - also forcing update
 const CACHE_KEY = `static-resources-${VS}`;
-const STATIC = {
+
+const STATIC_TYPES = { // request.destination
   "image": true,
   "style": true,
   "script": true,
   // "font": true,
   // "video": true,
+  "manifest": true,  // special for PWA manifest.json
 }
 
 
@@ -120,6 +122,11 @@ self.addEventListener('fetch', (evt) => {
 
   tmReset();
 
+
+  // respond documents from net 
+  //   caching
+  //   falling back to cache
+  //   falling back offline
   const fcDoc = async () => {
 
     if (1>2) {
@@ -136,7 +143,7 @@ self.addEventListener('fetch', (evt) => {
       const preRsp = await evt.preloadResponse; // preload response
       if (preRsp) {
         if (!preRsp.ok) throw Error("preRsp status code not 200-299");
-        console.log(`sw-${VS} - fetch - prel  ${tmSince()}ms - preRsp ${preRsp}`);
+        console.log(`sw-${VS} - fetch - prel  ${tmSince()}ms - preRsp ${preRsp.url}`);
         if (cacheNaviResps) {
           const cch = await caches.open(CACHE_KEY);
           cch.put(evt.request.url, preRsp.clone()); // response is a stream - browser and cache will consume the response
@@ -147,7 +154,7 @@ self.addEventListener('fetch', (evt) => {
       // try network
       const netRsp = await fetch(evt.request);  // network response
       if (!netRsp.ok) throw Error("netRsp status code not 200-299");
-      console.log(`sw-${VS} - fetch - net   ${tmSince()}ms - netRsp ${netRsp}`);
+      console.log(`sw-${VS} - fetch - net   ${tmSince()}ms - netRsp ${netRsp.url}`);
       if (cacheNaviResps) {
         const cch = await caches.open(CACHE_KEY);
         // cch.add(netRsp);
@@ -167,13 +174,17 @@ self.addEventListener('fetch', (evt) => {
         console.log(`sw-${VS} - fetch - cache ${tmSince()}ms - cachedResp ${rsp.url}`);
         return rsp;
       } else {
-        const anotherRsp = new Response( '<p>Neither network nor cache available</p>',  { headers: { 'Content-Type': 'text/html' } });
-        // todo respond offline.html
-        return anotherRsp;
+        if (1>2) {
+          const anotherRsp = new Response('<p>Neither network nor cache available</p>', { headers: { 'Content-Type': 'text/html' } });
+          return anotherRsp;          
+        }
+        return caches.match('/offline.html');
+
       }
     }
   };
 
+  // revalidate
   const fcReval = async () => {
     const cch = await caches.open(CACHE_KEY);
     const rsp = await fetch(evt.request);
@@ -181,25 +192,30 @@ self.addEventListener('fetch', (evt) => {
     console.log(`    static rvl - ${evt.request.url} - ${tmSince()}ms`); 
   }
 
-  /* 
-    serve from cache - and revalidate asynchroneously
 
-  */
+  // serve from cache - and revalidate asynchroneously
+  //   or serve from net and put into synchroneously
+  //   so called "Stale-while-revalidate" - https://web.dev/offline-cookbook/#stale-while-revalidate
+  // 
+  // to see the revalidated response within the same request, we need to call this from the html page
   const fcSttc = async () => {
     try {
 
+      // 
       const rspCch = await caches.match(evt.request);
       if (rspCch) {
-        Promise.resolve().then( fcReval() );
+        // Promise.resolve().then( fcReval() );  // rewritten on the next two lines
+        const dummy = await Promise.resolve();
+        fcReval();
         console.log(`    static cch - ${evt.request.url} - ${tmSince()}ms`);
         return rspCch;
       } 
-      const rspNet = await fetch(evt.request);
 
-      {
-        const cch = await caches.open(CACHE_KEY);
-        cch.put(evt.request.url, rspNet.clone()); // response is a stream - browser and cache will consume the response
-      }
+      // this results in chained promises fetch => cache open => cache put => return fetch
+      //   we could async the cache open, cache put ops, but it does not save much 
+      const rspNet = await fetch(evt.request);
+      const cch = await caches.open(CACHE_KEY);
+      cch.put(evt.request.url, rspNet.clone()); // response is a stream - browser and cache will consume the response
       console.log(`    static net - ${evt.request.url} - ${tmSince()}ms`);
       return rspNet;
 
@@ -220,15 +236,14 @@ self.addEventListener('fetch', (evt) => {
     // console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${evt.request.url}`);
     evt.respondWith( fcDoc() );
     console.log(`sw-${VS} - fetch - navi stop  ${tmSince()}ms - ${evt.request.url}`);
-  } else if ( STATIC[dest] ) {      
+  } else if ( STATIC_TYPES[dest] ) {      
     evt.respondWith( fcSttc() );      
     console.log(`sw-${VS} - fetch - sttc stop  - dest ${dest} - ${evt.request.url} - mode ${evt.request.mode}`);
+  } else {
+    console.log(`sw-${VS} - fetch - unhandled  - dest ${dest} - ${evt.request.url} - mode ${evt.request.mode}`);
   }
 
-  // ...
-  // other fetch handlers ... =>  event.respondWith()
-  // ...
-  // default browser fetch behaviour without service worker involvement
+  // ...default browser fetch behaviour without service worker involvement
 
 
 });
