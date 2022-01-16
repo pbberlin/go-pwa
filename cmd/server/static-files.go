@@ -21,6 +21,7 @@ func init() {
 }
 
 var staticFilesSeed = []string{
+	"/favicon.ico", // always requested from root
 	"/index.html",
 	"/offline.html",
 
@@ -81,6 +82,9 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 				continue
 			}
 			if strings.HasPrefix(file.Name(), "tmp-") {
+				continue
+			}
+			if strings.HasSuffix(file.Name(), "favicon.ico") {
 				continue
 			}
 
@@ -171,7 +175,7 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 			fnSrc := path.Join(dirSrc, file.Name())
 			fnDst := path.Join(dirDst, file.Name())
 
-			//
+			// gzip JavaScript and CSS, but not images
 			if dirIdx < 3 {
 				//
 				// closure because of defer
@@ -233,8 +237,12 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "User-agent: Googlebot Disallow: /example-subfolder/")
 		return
-	case strings.HasPrefix(r.URL.Path, "/img/favicon.ico"):
+	case strings.HasPrefix(r.URL.Path, "/favicon.ico"):
+		// browsers request this from the root
 		w.Header().Set("Content-Type", "image/x-icon")
+		r.URL.Path = fmt.Sprintf("/img/%v/favicon.ico", cfg.Get().TS)
+		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
+
 	case strings.HasPrefix(r.URL.Path, "/service-worker.js"):
 		w.Header().Set("Content-Type", "application/javascript")
 		r.URL.Path = fmt.Sprintf("/js-service-worker/%v/service-worker.js", cfg.Get().TS)

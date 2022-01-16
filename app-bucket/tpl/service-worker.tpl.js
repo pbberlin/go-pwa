@@ -1,6 +1,8 @@
 /* 
-from https://googlechrome.github.io/samples/service-worker/custom-offline-page/
-    https://developers.google.com/web/ilt/pwa/caching-files-with-service-worker
+from 
+  googlechrome.github.io/samples/service-worker/custom-offline-page/
+  developers.google.com/web/ilt/pwa/caching-files-with-service-worker
+  web.dev/offline-cookbook
 
 fetch including cookies: 
   fetch(url, {credentials: 'include'})
@@ -89,17 +91,18 @@ self.addEventListener('install', (evt) => {
 
 // cleanup previous service worker version caches
 //   dont block - prevents page loads
-//   https://www.youtube.com/watch?v=k1eoekN3nkA
+//   www.youtube.com/watch?v=k1eoekN3nkA
 self.addEventListener('activate', (evt) => {
   console.log(`sw-${VS} - activate - start ${tmSince()}ms`);
 
   const fc1 = async () => {
-    // https://developers.google.com/web/updates/2017/02/navigation-preload
+    // developers.google.com/web/updates/2017/02/navigation-preload
     if ('navigationPreload' in self.registration) {
       await self.registration.navigationPreload.enable();
     }
   };
 
+  // No way for cache TTL: stackoverflow.com/questions/55729284
   const fc2 = async () => {
     const keys = await caches.keys();
     return await Promise.all(
@@ -130,7 +133,9 @@ self.addEventListener('fetch', (evt) => {
   const fcDoc = async () => {
 
     if (1>2) {
-      console.log(evt.request.url, evt.request.method, evt.request.headers, evt.request.body);
+      const evtr = evt.request;
+      console.log(evtr.url, evtr.method, evtr.headers, evtr.body); 
+      console.log(evtr.url.hostname, evtr.url.origin, evtr.url.pathname);
       const cch = await caches.open(CACHE_KEY);
       const rsp = await cch.match('/pets.json');
       console.log(`    rsp pets is ${rsp}`);
@@ -139,7 +144,7 @@ self.addEventListener('fetch', (evt) => {
     try {
 
       // try navigation preload
-      //  https://developers.google.com/web/updates/2017/02/navigation-preload
+      //  developers.google.com/web/updates/2017/02/navigation-preload
       const preRsp = await evt.preloadResponse; // preload response
       if (preRsp) {
         if (!preRsp.ok) throw Error("preRsp status code not 200-299");
@@ -186,16 +191,23 @@ self.addEventListener('fetch', (evt) => {
 
   // revalidate
   const fcReval = async () => {
-    const cch = await caches.open(CACHE_KEY);
-    const rsp = await fetch(evt.request);
-    cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
-    console.log(`    static rvl - ${evt.request.url} - ${tmSince()}ms`); 
+    try {
+      if (!navigator.onLine) {
+        return;
+      }
+      const cch = await caches.open(CACHE_KEY);
+      const rsp = await fetch(evt.request);
+      cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
+      console.log(`    static rvl - ${evt.request.url} - ${tmSince()}ms`);       
+    } catch (error) {
+      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${evt.request.url}`);      
+    }
   }
 
 
   // serve from cache - and revalidate asynchroneously
   //   or serve from net and put into synchroneously
-  //   so called "Stale-while-revalidate" - https://web.dev/offline-cookbook/#stale-while-revalidate
+  //   so called "Stale-while-revalidate" - web.dev/offline-cookbook/#stale-while-revalidate
   // 
   // to see the revalidated response within the same request, we need to call this from the html page
   const fcSttc = async () => {
@@ -221,14 +233,14 @@ self.addEventListener('fetch', (evt) => {
 
 
     } catch (error) {
-      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error}`);
+      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error} - ${evt.request.url}`);
     }
 
   };
 
 
 
-  // https://medium.com/dev-channel/service-worker-caching-strategies-based-on-request-types-57411dd7652c
+  // medium.com/dev-channel/service-worker-caching-strategies-based-on-request-types-57411dd7652c
   const dest = evt.request.destination;
  
 
@@ -249,3 +261,18 @@ self.addEventListener('fetch', (evt) => {
 });
 
 
+// not triggered by request.mode navigate
+self.addEventListener('sync', (evt) => {
+
+  tmReset();
+
+  if (evt.id == 'update-leaderboard') {
+    evt.waitUntil(
+      caches.open('mygame-dynamic').then( (cch) => cch.add('/leaderboard.json') ),
+    );
+  }
+
+  console.log(`sw-${VS} - sync evt-id ${evt.id}  ${evt.request.url} - stop `);
+
+
+});
