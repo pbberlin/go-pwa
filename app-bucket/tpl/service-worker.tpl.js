@@ -24,6 +24,12 @@ const tmReset = () => {
   tmSt = new Date().getTime();
 }
 
+const chopHost = (url) => {
+  url = url.replace(/^(AB)/, '');          // replaces "AB" only if it is at the beginning
+  url = url.replace(/^(https:\/\/localhost)/, ''); 
+  return url;
+}
+
 
 
 const VS = "{{.Version}}"; // version - also forcing update
@@ -85,6 +91,18 @@ self.addEventListener('install', (evt) => {
   evt.waitUntil( fc() );
 
   // event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
+
+  if (registration.sync) {
+    console.log("background sync  - on request - supported")
+  }
+
+  if (registration.periodicSync) {
+    console.log("background sync  - periodic - supported")
+  }
+
+  if (self.BackgroundFetchManager) {
+    console.log("background fetch - supported")
+  }  
 
   console.log(`sw-${VS} - install  - stop  ${tmSince()}ms`);
 });
@@ -198,9 +216,9 @@ self.addEventListener('fetch', (evt) => {
       const cch = await caches.open(CACHE_KEY);
       const rsp = await fetch(evt.request);
       cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
-      console.log(`    static rvl - ${evt.request.url} - ${tmSince()}ms`);       
+      console.log(`    static rvl - ${chopHost(evt.request.url)} - ${tmSince()}ms`);       
     } catch (error) {
-      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${evt.request.url}`);      
+      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);      
     }
   }
 
@@ -219,7 +237,7 @@ self.addEventListener('fetch', (evt) => {
         // Promise.resolve().then( fcReval() );  // rewritten on the next two lines
         const dummy = await Promise.resolve();
         fcReval();
-        console.log(`    static cch - ${evt.request.url} - ${tmSince()}ms`);
+        console.log(`    static cch - ${chopHost(evt.request.url)} - ${tmSince()}ms`);
         return rspCch;
       } 
 
@@ -228,12 +246,12 @@ self.addEventListener('fetch', (evt) => {
       const rspNet = await fetch(evt.request);
       const cch = await caches.open(CACHE_KEY);
       cch.put(evt.request.url, rspNet.clone()); // response is a stream - browser and cache will consume the response
-      console.log(`    static net - ${evt.request.url} - ${tmSince()}ms`);
+      console.log(`    static net - ${chopHost(evt.request.url)} - ${tmSince()}ms`);
       return rspNet;
 
 
     } catch (error) {
-      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error} - ${evt.request.url}`);
+      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);
     }
 
   };
@@ -245,14 +263,14 @@ self.addEventListener('fetch', (evt) => {
  
 
   if (evt.request.mode === 'navigate') { // only HTML pages
-    // console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${evt.request.url}`);
+    // console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${chopHost(evt.request.url)}`);
     evt.respondWith( fcDoc() );
-    console.log(`sw-${VS} - fetch - navi stop  ${tmSince()}ms - ${evt.request.url}`);
+    console.log(`sw-${VS} - fetch - navi stop  ${tmSince()}ms - ${chopHost(evt.request.url)}`);
   } else if ( STATIC_TYPES[dest] ) {      
     evt.respondWith( fcSttc() );      
-    console.log(`sw-${VS} - fetch - sttc stop  - dest ${dest} - ${evt.request.url} - mode ${evt.request.mode}`);
+    console.log(`sw-${VS} - fetch - sttc stop  - dest ${dest} - ${chopHost(evt.request.url)} - mode ${evt.request.mode}`);
   } else {
-    console.log(`sw-${VS} - fetch - unhandled  - dest ${dest} - ${evt.request.url} - mode ${evt.request.mode}`);
+    console.log(`sw-${VS} - fetch - unhandled  - dest ${dest} - ${chopHost(evt.request.url)} - mode ${evt.request.mode}`);
   }
 
   // ...default browser fetch behaviour without service worker involvement
@@ -262,6 +280,7 @@ self.addEventListener('fetch', (evt) => {
 
 
 // not triggered by request.mode navigate
+//   https://davidwalsh.name/background-sync
 self.addEventListener('sync', (evt) => {
 
   tmReset();
@@ -272,7 +291,7 @@ self.addEventListener('sync', (evt) => {
     );
   }
 
-  console.log(`sw-${VS} - sync evt-id ${evt.id}  ${evt.request.url} - stop `);
+  console.log(`sw-${VS} - sync evt-id ${evt.id}  ${chopHost(evt.request.url)} - stop `);
 
 
 });
