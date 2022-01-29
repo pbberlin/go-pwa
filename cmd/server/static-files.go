@@ -16,6 +16,66 @@ import (
 	"github.com/zew/https-server/pkg/gzipper"
 )
 
+// include directory files into service worker install pre-cache
+type preCacheByServiceWorker struct {
+	cache             bool     // part of service worker install pre-cache
+	includeExtensions []string // only include files with these extensions, i.e. ".webp"
+}
+
+type dir struct {
+	name         string // directory name; app path
+	GZIP         bool   // create .gzipped file during preprocess
+	swpc         preCacheByServiceWorker
+	HeadTemplate string // template for HTML head section, if any
+
+	HTTPCache         int
+	MimeType          string
+	includeExtensions []string // only include files with these extensions, i.e. ".webp"
+}
+
+var dirs = []dir{
+	{
+		name: "./app-bucket/js-service-worker/",
+		GZIP: true,
+		swpc: preCacheByServiceWorker{
+			cache: false,
+		},
+		HTTPCache: 60 * 60 * 120,
+		MimeType:  "application/javascript",
+	},
+	{
+		name: "./app-bucket/js/",
+		GZIP: true,
+		swpc: preCacheByServiceWorker{
+			cache: true,
+		},
+		HeadTemplate: `	<script src="/js/%s/%v" nonce="%s" ></script>`,
+		HTTPCache: 60 * 60 * 120,
+		MimeType:  "application/javascript",
+	},
+	{
+		name: "./app-bucket/css/",
+		GZIP: true,
+		swpc: preCacheByServiceWorker{
+			cache: true,
+		},
+		HeadTemplate: `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" media="screen" />`,
+		HTTPCache: 60 * 60 * 120,
+		MimeType:  "text/css",
+	},
+	{
+		name: "./app-bucket/img/",
+		GZIP: false, // webp files are already compressed
+		swpc: preCacheByServiceWorker{
+			cache:             true,
+			includeExtensions: []string{".webp"},
+		},
+		HTTPCache:         60 * 60 * 120,
+		MimeType:          "image/webp",
+		includeExtensions: []string{".webp", ".ico"},
+	},
+}
+
 func init() {
 	// cfg.RunHandleFunc(prepareStatic, "/prepare-static")
 }
@@ -44,7 +104,7 @@ func filesOfDir(dirSrc string) ([]fs.FileInfo, error) {
 	return files, nil
 }
 
-// prepareServiceWorker
+// prepareServiceWorker compiles a list of files and a version
 func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 
 	srcPth := "./app-bucket/tpl/service-worker.tpl.js"
@@ -62,6 +122,7 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 		"./app-bucket/js/",
 		"./app-bucket/css/",
 		"./app-bucket/img/",
+		"./app-bucket/json/",
 	}
 
 	for _, dirSrc := range dirs {
@@ -78,13 +139,11 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 				continue
 			}
 
-			if strings.HasSuffix(file.Name(), ".png") {
-				continue
-			}
-			if strings.HasPrefix(file.Name(), "tmp-") {
-				continue
-			}
-			if strings.HasSuffix(file.Name(), "favicon.ico") {
+			ext := path.Ext(file.Name())
+			if ext != ".webp" &&
+				ext != ".css" &&
+				ext != ".js" &&
+				ext != ".json" {
 				continue
 			}
 
@@ -130,6 +189,7 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 		"./app-bucket/js/",
 		"./app-bucket/js-service-worker/",
 		"./app-bucket/css/",
+		"./app-bucket/json/",
 		"./app-bucket/img/",
 	}
 
@@ -176,7 +236,7 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 			fnDst := path.Join(dirDst, file.Name())
 
 			// gzip JavaScript and CSS, but not images
-			if dirIdx < 3 {
+			if dirIdx < 4 {
 				//
 				// closure because of defer
 				zipIt := func() {
@@ -196,8 +256,9 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 				zipIt()
 			}
 			//
-			if dirIdx == 3 {
+			if dirIdx == 4 {
 				ext := path.Ext(file.Name())
+				// favicon is read from here
 				if ext != ".webp" && ext != ".ico" {
 					continue
 				}
@@ -225,6 +286,23 @@ func prepareStatic(w http.ResponseWriter, req *http.Request) {
 
 	}
 
+}
+
+// addVersion purpose
+//      if images or json files are requested without any version
+// 		then serve current version
+func addVersion(r *http.Request) *http.Request {
+
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) > 3 { // behold empty token from leading "/"
+		return r
+	}
+	// log.Printf("parts are %+v", parts)
+	anchor := fmt.Sprintf("/%v/", parts[1])
+	replacement := fmt.Sprintf("/%v/%v/", parts[1], cfg.Get().TS)
+	r.URL.Path = strings.Replace(r.URL.Path, anchor, replacement, 1)
+	// log.Printf("new URL  %v", r.URL.Path)
+	return r
 }
 
 func serveStatic(w http.ResponseWriter, r *http.Request) {
@@ -258,13 +336,10 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 	case strings.HasPrefix(r.URL.Path, "/img/"):
 		w.Header().Set("Content-Type", "image/webp")
 		w.Header().Set("Cache-Control", fmt.Sprintf("public,max-age=%d", 60*60*120))
-
-		// todo: versioning of images
-		// replacement := fmt.Sprintf("/js/%v/", cfg.Get().TS)
-		// r.URL.Path = strings.Replace(r.URL.Path, "/js/", replacement, 1)
-
+		r = addVersion(r)
 	case strings.HasPrefix(r.URL.Path, "/json/"):
 		w.Header().Set("Content-Type", "application/json")
+		r = addVersion(r)
 	default:
 		w.Header().Set("Content-Type", "text/plain")
 		fmt.Fprintf(w, "unsupported static directory")
@@ -277,7 +352,8 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 		// not for images, not for json
 		if strings.HasPrefix(r.URL.Path, "/js/") ||
 			strings.HasPrefix(r.URL.Path, "/js-service-worker/") ||
-			strings.HasPrefix(r.URL.Path, "/css/") {
+			strings.HasPrefix(r.URL.Path, "/css/") ||
+			strings.HasPrefix(r.URL.Path, "/json/") {
 			pth += ".gzip"
 			w.Header().Set("Content-Encoding", "gzip")
 		}

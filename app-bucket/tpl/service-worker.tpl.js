@@ -1,10 +1,10 @@
-/* 
-from 
+/*
+from
   googlechrome.github.io/samples/service-worker/custom-offline-page/
   developers.google.com/web/ilt/pwa/caching-files-with-service-worker
   web.dev/offline-cookbook
 
-fetch including cookies: 
+fetch including cookies:
   fetch(url, {credentials: 'include'})
 
 non CORS fail by default; avoid by
@@ -26,7 +26,7 @@ const tmReset = () => {
 
 const chopHost = (url) => {
   url = url.replace(/^(AB)/, '');          // replaces "AB" only if it is at the beginning
-  url = url.replace(/^(https:\/\/localhost)/, ''); 
+  url = url.replace(/^(https:\/\/localhost)/, '');
   return url;
 }
 
@@ -90,20 +90,17 @@ self.addEventListener('install', (evt) => {
 
   evt.waitUntil( fc() );
 
+  async function requestBackgroundSync(tag) {
+    try {
+      await self.registration.sync.register(tag);
+      console.log("sync - supported (from service worker)");
+    } catch (err) {
+      console.log(`sw-${VS} - self.registration.sync failed ${err}`);
+    }
+  }
+  requestBackgroundSync('tag-sync-sw');
+
   // event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
-
-  if (registration.sync) {
-    console.log("background sync  - on request - supported")
-  }
-
-  if (registration.periodicSync) {
-    console.log("background sync  - periodic - supported")
-  }
-
-  if (self.BackgroundFetchManager) {
-    console.log("background fetch - supported")
-  }  
-
   console.log(`sw-${VS} - install  - stop  ${tmSince()}ms`);
 });
 
@@ -144,7 +141,7 @@ self.addEventListener('fetch', (evt) => {
   tmReset();
 
 
-  // respond documents from net 
+  // respond documents from net
   //   caching
   //   falling back to cache
   //   falling back offline
@@ -152,7 +149,7 @@ self.addEventListener('fetch', (evt) => {
 
     if (1>2) {
       const evtr = evt.request;
-      console.log(evtr.url, evtr.method, evtr.headers, evtr.body); 
+      console.log(evtr.url, evtr.method, evtr.headers, evtr.body);
       console.log(evtr.url.hostname, evtr.url.origin, evtr.url.pathname);
       const cch = await caches.open(CACHE_KEY);
       const rsp = await cch.match('/pets.json');
@@ -199,7 +196,7 @@ self.addEventListener('fetch', (evt) => {
       } else {
         if (1>2) {
           const anotherRsp = new Response('<p>Neither network nor cache available</p>', { headers: { 'Content-Type': 'text/html' } });
-          return anotherRsp;          
+          return anotherRsp;
         }
         return caches.match('/offline.html');
 
@@ -216,9 +213,9 @@ self.addEventListener('fetch', (evt) => {
       const cch = await caches.open(CACHE_KEY);
       const rsp = await fetch(evt.request);
       cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
-      console.log(`    static rvl - ${chopHost(evt.request.url)} - ${tmSince()}ms`);       
+      console.log(`    static rvl - ${chopHost(evt.request.url)} - ${tmSince()}ms`);
     } catch (error) {
-      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);      
+      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);
     }
   }
 
@@ -226,12 +223,12 @@ self.addEventListener('fetch', (evt) => {
   // serve from cache - and revalidate asynchroneously
   //   or serve from net and put into synchroneously
   //   so called "Stale-while-revalidate" - web.dev/offline-cookbook/#stale-while-revalidate
-  // 
+  //
   // to see the revalidated response within the same request, we need to call this from the html page
   const fcSttc = async () => {
     try {
 
-      // 
+      //
       const rspCch = await caches.match(evt.request);
       if (rspCch) {
         // Promise.resolve().then( fcReval() );  // rewritten on the next two lines
@@ -239,10 +236,10 @@ self.addEventListener('fetch', (evt) => {
         fcReval();
         console.log(`    static cch - ${chopHost(evt.request.url)} - ${tmSince()}ms`);
         return rspCch;
-      } 
+      }
 
       // this results in chained promises fetch => cache open => cache put => return fetch
-      //   we could async the cache open, cache put ops, but it does not save much 
+      //   we could async the cache open, cache put ops, but it does not save much
       const rspNet = await fetch(evt.request);
       const cch = await caches.open(CACHE_KEY);
       cch.put(evt.request.url, rspNet.clone()); // response is a stream - browser and cache will consume the response
@@ -260,14 +257,14 @@ self.addEventListener('fetch', (evt) => {
 
   // medium.com/dev-channel/service-worker-caching-strategies-based-on-request-types-57411dd7652c
   const dest = evt.request.destination;
- 
+
 
   if (evt.request.mode === 'navigate') { // only HTML pages
     // console.log(`sw-${VS} - fetch - navi start ${tmSince()}ms - ${chopHost(evt.request.url)}`);
     evt.respondWith( fcDoc() );
     console.log(`sw-${VS} - fetch - navi stop  ${tmSince()}ms - ${chopHost(evt.request.url)}`);
-  } else if ( STATIC_TYPES[dest] ) {      
-    evt.respondWith( fcSttc() );      
+  } else if ( STATIC_TYPES[dest] ) {
+    evt.respondWith( fcSttc() );
     console.log(`sw-${VS} - fetch - sttc stop  - dest ${dest} - ${chopHost(evt.request.url)} - mode ${evt.request.mode}`);
   } else {
     console.log(`sw-${VS} - fetch - unhandled  - dest ${dest} - ${chopHost(evt.request.url)} - mode ${evt.request.mode}`);
@@ -285,13 +282,17 @@ self.addEventListener('sync', (evt) => {
 
   tmReset();
 
-  if (evt.id == 'update-leaderboard') {
+  console.log(`sw-${VS} - sync tag ${evt.tag} - start `);
+  // console.log(evt);
+
+
+  if (evt.id == 'tag-sync-sw') {
     evt.waitUntil(
-      caches.open('mygame-dynamic').then( (cch) => cch.add('/leaderboard.json') ),
+      caches.open('/favicon.ico').then( (cch) => cch.add('/favicon-2.ico') ),
     );
   }
 
-  console.log(`sw-${VS} - sync evt-id ${evt.id}  ${chopHost(evt.request.url)} - stop `);
+  console.log(`sw-${VS} - sync tag ${evt.tag} - stop `);
 
 
 });

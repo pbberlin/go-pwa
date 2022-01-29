@@ -28,8 +28,8 @@ const cfg1 = {
 
 const fcInitDB = async () => {    
 
-    // use localforage.createInstance instead
-    // localforage.config();
+    // for multiple 'tables' we use localforage.createInstance() instead of localforage.config();
+    //   side-effect: an IndexDB - localforage - keyvaluepairs is still created
     var table1 = await localforage.createInstance(cfg1);
     console.log(`created store ${store1} - in database ${dbName}`);
 
@@ -49,10 +49,35 @@ const fcInitDB = async () => {
     const userConfig  = {sort: "price", direction: "ascending"}
 
 
-    table1.setItem("key1", `val-${vs}`   ).then(  () => console.log("key1 config stored") );
-    table1.setItem("profile", userProfile).then(  () => console.log("prof config stored") );
-    table2.setItem("key2", `val-${vs}`   ).then(  () => console.log("key2 config stored") );
-    table2.setItem("config", userConfig  ).then(  () => console.log("user config stored") );
+    table1.setItem("key1", `val-${vs}`   ).then(  () => console.log("key1 stored in table1") );
+    table1.setItem("profile", userProfile).then(  () => console.log("profile stored in table1") );
+    const fcKeys = await table1.keys;
+    // console.log(`keys of table1 are ${fcKeys}`);
+    const keysRes = await fcKeys();
+    console.log(`table1 keys: ${keysRes}`);
+
+    
+
+    table2.setItem("key2", `val-${vs}`   ).then(  () => console.log("key2 stored in table2") );
+    table2.removeItem("key2").then(  () => console.log("key2 deleted") );
+    table2.setItem("config", userConfig  ).then(  () => console.log("config stored in table2") );
+    // table2.clear();
+
+ 
+    console.log('  iter start');
+    table1.iterate(  (val, key, cnt) => console.log(`   itr  ${cnt} - ${key}  ${val}`) )
+    .then(function () {
+        console.log('  iter stop');
+    }).catch(function (err) {
+        console.log(`iter error: ${err}`);
+    });
+
+    try {
+        const val = await table1.getItem('profile');
+        console.log(`val for key 'profile' is  ${val}`);
+    } catch (err) {
+        console.log(`could not getItem(...): ${err}`);
+    }
 
 }
 
@@ -77,8 +102,8 @@ try {
     .then(   fcInitDB   ) 
     ;
 
-} catch (error) {
-    console.log(`db might not yet exist; ${error}`);
+} catch (err) {
+    console.log(`db might not yet exist; ${err}`);
 }
 
 

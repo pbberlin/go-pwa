@@ -146,6 +146,49 @@ var closeLevel3 = function () {
 // addEventListener is cumulative
 window.addEventListener("load", function (event) {
 
+    if ('serviceWorker' in navigator) {
+        // must be in root
+		navigator.serviceWorker.register('/service-worker.js')
+			.then(   (reg) => console.log("service worker - registered", {reg})  )
+			.then(   (reg) => console.log("service worker - registered", {reg})  )
+			.catch(  (err) => console.log("service worker - NOT reg'ed",  err )  )
+        ;
+
+
+        // https://docs.microsoft.com/en-us/microsoft-edge/progressive-web-apps-chromium/how-to/background-syncs
+
+
+        // reg = registration
+        navigator.serviceWorker.ready.then( reg => {
+
+            if (reg.periodicSync) {
+                console.log("background sync  - periodic - supported")
+            }
+
+            if (reg.backgroundFetch) {
+                console.log("background fetch - supported")
+            }
+
+            if (reg.sync) {
+                reg.sync.register('tag-sync-1');
+                console.log("sync - supported");
+            } else {
+                console.log("sync NOT - supported");
+            }
+
+        });
+
+
+        async function requestBackgroundSync(tag) {
+            const reg = await navigator.serviceWorker.ready;
+            await reg.sync.register(tag);
+        }
+        requestBackgroundSync('tag-sync-2');
+
+
+    }
+
+
     document.addEventListener("keydown", keyControls, false);
     console.log("global key listener registered");
 

@@ -72,6 +72,7 @@ func main() {
 	mux.Handle("/img/", http.HandlerFunc(serveStatic))
 
 	// special static files - must be in root dir
+	mux.HandleFunc("/favicon.ico", serveStatic)
 	mux.HandleFunc("/robots.txt", serveStatic)
 	mux.HandleFunc("/service-worker.js", serveStatic)
 

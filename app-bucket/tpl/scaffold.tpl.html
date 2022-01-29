@@ -16,7 +16,7 @@
 	<meta name="description" content="{{.Desc}}">
 
     <!-- PWA -->
-    <link rel="manifest" href="/json/manifest.json">
+    <link rel="manifest" href='{{.SP "/json/manifest.json" }}'>
     <meta name="theme-color" content="rgb(228, 223, 206)" />
     <!-- PWA for Apple - home screen icon - and theme color -->
     <link rel="apple-touch-icon" href="/img/icon-096.webp">
@@ -36,7 +36,7 @@
 	<!-- satisfy some javascript stuff -->
     <form action="">
 		<input type="checkbox" name="mnu-1st-lvl-toggler" id="mnu-1st-lvl-toggler"   >
-        <a href="/config/load"   target="config_load" accesskey="c"><u>C</u>onfig Reload</a>
+        <a href="/config/load"   target="config_load" accesskey="o">C<u>o</u>nfig Reload</a>
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/index.html"    target="" >Home</a>
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/dynpage.html"  target="" >Dyn page</a>
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/dynpage.html?refuse=1"  target="" >Dyn 210</a>

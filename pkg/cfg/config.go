@@ -120,7 +120,7 @@ func Load(w http.ResponseWriter, r *http.Request) {
 
 	// write example with defaults
 	{
-		pth := "./app-bucket/json/tmp-example-config.json"
+		pth := "./app-bucket/server-config/tmp-example-config.json"
 		bts, err := json.MarshalIndent(defaultCfg, "", "\t")
 		if err != nil {
 			fmt.Fprintf(w, "error marshalling defaultCfg %v \n", err)
@@ -134,7 +134,7 @@ func Load(w http.ResponseWriter, r *http.Request) {
 
 	//
 	tmpCfg := cfg{}
-	pth := "./app-bucket/json/config.json"
+	pth := "./app-bucket/server-config/config.json"
 	bts, err := os.ReadFile(pth)
 	if err != nil {
 		fmt.Fprintf(w, "error opening %v, %v \n", pth, err)
