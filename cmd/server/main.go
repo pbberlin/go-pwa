@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/zew/https-server/pkg/cfg"
+	"github.com/zew/https-server/pkg/db"
 	"github.com/zew/https-server/pkg/gziphandler"
 	"golang.org/x/crypto/acme/autocert"
 )
@@ -46,6 +47,8 @@ func main() {
 
 	cfg.Headless(cfg.Load, "/config/load")
 	cfg.Headless(prepareStatic, "/prepare-static")
+
+	db.Initialize()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)

@@ -22,9 +22,12 @@ type preCacheByServiceWorker struct {
 	includeExtensions []string // only include files with these extensions, i.e. ".webp"
 }
 
-type dir struct {
-	name         string // directory name; app path
-	GZIP         bool   // create .gzipped file during preprocess
+type dirT struct {
+	isFile  bool // mostly directories, a few special files like favicon.ico, robots.txt
+	urlPath string
+	src     string // directory name; app path
+
+	GZIP         bool // create .gzipped file during preprocess
 	swpc         preCacheByServiceWorker
 	HeadTemplate string // template for HTML head section, if any
 
@@ -33,9 +36,13 @@ type dir struct {
 	includeExtensions []string // only include files with these extensions, i.e. ".webp"
 }
 
-var dirs = []dir{
+func src1() {
+
+}
+
+var dirs = []dirT{
 	{
-		name: "./app-bucket/js-service-worker/",
+		src:  "./app-bucket/js-service-worker/",
 		GZIP: true,
 		swpc: preCacheByServiceWorker{
 			cache: false,
@@ -44,7 +51,7 @@ var dirs = []dir{
 		MimeType:  "application/javascript",
 	},
 	{
-		name: "./app-bucket/js/",
+		src:  "./app-bucket/js/",
 		GZIP: true,
 		swpc: preCacheByServiceWorker{
 			cache: true,
@@ -54,7 +61,7 @@ var dirs = []dir{
 		MimeType:  "application/javascript",
 	},
 	{
-		name: "./app-bucket/css/",
+		src:  "./app-bucket/css/",
 		GZIP: true,
 		swpc: preCacheByServiceWorker{
 			cache: true,
@@ -64,7 +71,7 @@ var dirs = []dir{
 		MimeType:  "text/css",
 	},
 	{
-		name: "./app-bucket/img/",
+		src:  "./app-bucket/img/",
 		GZIP: false, // webp files are already compressed
 		swpc: preCacheByServiceWorker{
 			cache:             true,

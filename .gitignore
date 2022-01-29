@@ -6,6 +6,8 @@ server-new
 *.exe~
 *.gzip
 
+*.sqlite
+
 # static resources
 **/vs-*/**
 
