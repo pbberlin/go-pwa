@@ -43,7 +43,16 @@ func offline(w http.ResponseWriter, r *http.Request) {
 	sc.render(w, cnt)
 }
 
-func plain(w http.ResponseWriter, req *http.Request) {
+func plain(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "This is an example server.\n")
+}
+
+func saveJson(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.PostFormValue("refuse") != "" {
+		return
+	}
+	fmt.Fprintf(w, "%+v", r.PostForm)
 }

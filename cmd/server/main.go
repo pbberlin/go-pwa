@@ -62,6 +62,7 @@ func main() {
 		prepareStatic(w, r)
 	})
 	mux.HandleFunc("/hello", plain)
+	mux.HandleFunc("/save-json", saveJson)
 
 	if cfg.Get().PrecompressGZIP {
 		mux.HandleFunc("/js/", serveStatic)

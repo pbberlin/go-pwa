@@ -239,7 +239,7 @@ window.addEventListener("load",  evt => {
             }
 
             if (reg.sync) {
-                // reg.sync.register('tag-sync-1');
+                // reg.sync.register('tag-sync-onload');
                 console.log("sync - supported");
             } else {
                 console.log("sync NOT - supported");
@@ -252,7 +252,7 @@ window.addEventListener("load",  evt => {
             const reg = await navigator.serviceWorker.ready;
             await reg.sync.register(tag);
         }
-        requestBackgroundSync('tag-sync-2');
+        requestBackgroundSync('tag-sync-onload');
 
 
     }

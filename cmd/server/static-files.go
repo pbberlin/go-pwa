@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"html/template"
+	htmltpl "html/template"
 	"io"
 	"io/fs"
 	"log"
@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	texttpl "text/template"
 
 	"github.com/zew/https-server/pkg/cfg"
 	"github.com/zew/https-server/pkg/gzipper"
@@ -111,11 +112,41 @@ func filesOfDir(dirSrc string) ([]fs.FileInfo, error) {
 	return files, nil
 }
 
+/*
+	a clean way to create a JavaScript file
+	from a template file
+	with JavaScript fields  {{ .MyJavaScriptSnippet  }}
+
+	we dont want "<" being escaped to &lt; in the template
+
+	and we dont want "'" in .MyJavaScriptSnippet being escaped to &23232;
+
+*/
+func javascriptTemplate(srcPth string, w io.Writer) {
+
+	_ = texttpl.HTMLEscapeString("force-import")
+	_ = htmltpl.HTMLEscapeString("force-import")
+
+	btsSW, err := os.ReadFile(srcPth)
+	if err != nil {
+		fmt.Fprintf(w, "could not read service worker template %v\n", err)
+		return
+	}
+	strSW := string(btsSW)
+	strSWAsJS := htmltpl.JS(strSW)
+	_ = strSWAsJS
+
+	tpl2 := htmltpl.New("xx")
+	_ = tpl2
+	tpl2.Parse("{{js .JS}}")
+
+}
+
 // prepareServiceWorker compiles a list of files and a version
 func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 
 	srcPth := "./app-bucket/tpl/service-worker.tpl.js"
-	t, err := template.ParseFiles(srcPth)
+	t, err := htmltpl.ParseFiles(srcPth)
 	if err != nil {
 		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
 		return
@@ -165,10 +196,10 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 
 	data := struct {
 		Version     string
-		ListOfFiles template.HTML // neither .JS nor .JSStr do work
+		ListOfFiles htmltpl.HTML // neither .JS nor .JSStr do work
 	}{
 		Version:     cfg.Get().TS,
-		ListOfFiles: template.HTML("'" + strings.Join(staticFiles, "',\n  '") + "'"),
+		ListOfFiles: htmltpl.HTML("'" + strings.Join(staticFiles, "',\n  '") + "'"),
 	}
 
 	err = t.Execute(bts, data)

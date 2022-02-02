@@ -12,6 +12,70 @@ non CORS fail by default; avoid by
 
 */
 
+const VS = "{{.Version}}"; // version - also forcing update
+
+const STATIC_TYPES = { // request.destination
+  "image": true,
+  "style": true,
+  "script": true,
+  // "font": true,
+  // "video": true,
+  "manifest": true,  // special for PWA manifest.json
+}
+
+
+
+const oldCons = console;  // window.console undefined in service worker
+const newCons = function(oldCons) {
+
+  var prefixes = {};
+
+  return {
+    log: function (text) {
+      // 'sw-vs-476442 - fetch - sttc stop'
+      // '    static cch -'
+
+      const prefPref = `sw-${VS} -`;
+      const pref1 = text.substring(0, prefPref.length);
+      if (pref1 === prefPref) {
+        text = text.substring(prefPref.length);
+        // oldCons.log("trimmed pref1");
+      }
+
+
+      const pref2 = text.substring(0, 16);
+      if (pref2 in prefixes) {
+        prefixes[pref2]++;
+      } else {
+        prefixes[pref2] = 1;
+      }
+
+      // avoid escaping of < to &lt; by golang template engine
+      if ( 4>prefixes[pref2] ) {
+        oldCons.log( prefixes[pref2], text);
+      } else {
+        // oldCons.log("swallowed", prefixes[prefix],text);
+      }
+    },
+    info: function (text) {
+      oldCons.info(text);
+    },
+    warn: function (text) {
+      oldCons.warn(text);
+    },
+    error: function (text) {
+      oldCons.error(text);
+    },
+
+  }
+
+}
+
+// console = newCons(oldCons);
+
+
+
+
 // time of start of program
 let tmSt = new Date().getTime();
 
@@ -31,18 +95,6 @@ const chopHost = (url) => {
 }
 
 
-
-const VS = "{{.Version}}"; // version - also forcing update
-const CACHE_KEY = `static-resources-${VS}`;
-
-const STATIC_TYPES = { // request.destination
-  "image": true,
-  "style": true,
-  "script": true,
-  // "font": true,
-  // "video": true,
-  "manifest": true,  // special for PWA manifest.json
-}
 
 
 const cacheNaviResps = true; // cache navigational responses
@@ -98,7 +150,7 @@ self.addEventListener('install', (evt) => {
       console.log(`sw-${VS} - self.registration.sync failed ${err}`);
     }
   }
-  requestBackgroundSync('tag-sync-sw');
+  requestBackgroundSync('tag-sync-install');
 
   // event.waitUntil(  (  async()  =>  { console.log(`payload`); })()  );
   console.log(`sw-${VS} - install  - stop  ${tmSince()}ms`);
@@ -276,6 +328,9 @@ self.addEventListener('fetch', (evt) => {
 });
 
 
+importScripts(`/js/${VS}/idb.js`);
+importScripts(`/js/${VS}/idb-init.js`);
+
 // not triggered by request.mode navigate
 //   https://davidwalsh.name/background-sync
 self.addEventListener('sync', (evt) => {
@@ -286,13 +341,48 @@ self.addEventListener('sync', (evt) => {
   // console.log(evt);
 
 
-  if (evt.id == 'tag-sync-sw') {
-    evt.waitUntil(
-      caches.open('/favicon.ico').then( (cch) => cch.add('/favicon-2.ico') ),
-    );
+  const pref = "tag-sync-";
+  const cmp = evt.tag.substring(0, pref.length);
+  if (cmp === pref) {
+
+    console.log(`sw-${VS} - sync tag ${evt.tag} - before waitUntil `);
+
+    evt.waitUntil( async () => {
+
+      console.log(`sw-${VS} - sync tag ${evt.tag} - after  waitUntil `);
+
+      const cch = await caches.open(CACHE_KEY);
+      cch.add(new Request('/home-sync.html', reqOpts));
+
+      console.log(`sw-${VS} - sync tag ${evt.tag} - db `);
+
+      try {
+        const outbx = await store.outbox('readonly');
+        const msgs = await outbx.getAll();
+        // send messages
+        const rawResponse = await fetch('https://localhost/save-json', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          // body: JSON.stringify({ a: 1, b: 'Textual content' }),
+          body: JSON.stringify(msgs),
+        });
+        const rsp = await rawResponse.json();
+        console.log(`save-json response: `,{rsp});
+
+      } catch (err) {
+        console.error(err);
+      }
+
+    });
   }
 
   console.log(`sw-${VS} - sync tag ${evt.tag} - stop `);
 
 
 });
+
+
+const CACHE_KEY = `static-resources-${VS}`;
