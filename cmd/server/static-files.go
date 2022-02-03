@@ -336,9 +336,9 @@ func addVersion(r *http.Request) *http.Request {
 		return r
 	}
 	// log.Printf("parts are %+v", parts)
-	anchor := fmt.Sprintf("/%v/", parts[1])
+	needle := fmt.Sprintf("/%v/", parts[1])
 	replacement := fmt.Sprintf("/%v/%v/", parts[1], cfg.Get().TS)
-	r.URL.Path = strings.Replace(r.URL.Path, anchor, replacement, 1)
+	r.URL.Path = strings.Replace(r.URL.Path, needle, replacement, 1)
 	// log.Printf("new URL  %v", r.URL.Path)
 	return r
 }

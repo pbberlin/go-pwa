@@ -147,7 +147,7 @@ self.addEventListener('install', (evt) => {
       await self.registration.sync.register(tag);
       console.log("sync - supported (from service worker)");
     } catch (err) {
-      console.log(`sw-${VS} - self.registration.sync failed ${err}`);
+      console.error(`sw-${VS} - self.registration.sync failed ${err}`);
     }
   }
   requestBackgroundSync('tag-sync-install');
@@ -234,11 +234,11 @@ self.addEventListener('fetch', (evt) => {
       }
       return netRsp;
 
-    } catch (error) {
+    } catch (err) {
       // on network errors
       // not on resp codes 4xx or 5xx
       // codes 4xx or 5xx jump here via if (!rsp.ok) throw...
-      console.log(`sw-${VS} - fetch - error ${tmSince()}ms - ${error}`);
+      console.error(`sw-${VS} - fetch - error ${tmSince()}ms - ${err}`);
 
       const cch = await caches.open(CACHE_KEY);
       const rsp = await cch.match(evt.request, matchOpts);
@@ -266,8 +266,8 @@ self.addEventListener('fetch', (evt) => {
       const rsp = await fetch(evt.request);
       cch.put(evt.request.url, rsp); // no cloning necessary for revalidation
       console.log(`    static rvl - ${chopHost(evt.request.url)} - ${tmSince()}ms`);
-    } catch (error) {
-      console.log(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);
+    } catch (err) {
+      console.error(`sw-${VS} - reval fetch - error ${tmSince()}ms - ${err} - ${chopHost(evt.request.url)}`);
     }
   }
 
@@ -299,8 +299,8 @@ self.addEventListener('fetch', (evt) => {
       return rspNet;
 
 
-    } catch (error) {
-      console.log(`sw-${VS} - fetch static - error ${tmSince()}ms - ${error} - ${chopHost(evt.request.url)}`);
+    } catch (err) {
+      console.error(`sw-${VS} - fetch static - error ${tmSince()}ms - ${err} - ${chopHost(evt.request.url)}`);
     }
 
   };

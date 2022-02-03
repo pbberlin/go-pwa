@@ -41,3 +41,11 @@ into a [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse) approved 
   * PWA service worker pre-caching on install
 
   * PWA service worker fetch with `cache-first`
+
+## Javascript docs
+
+Finally some comprehensive JS docs
+
+<https://javascript.info/indexeddb>
+
+<https://javascript.info/microtask-queue>

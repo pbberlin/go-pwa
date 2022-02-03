@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"path"
 	"strings"
 
 	"github.com/zew/https-server/pkg/cfg"
@@ -21,9 +20,13 @@ type Scaffold struct {
 // SP provides the static path for a uri;
 // prepending an app prefix and a version
 func (sc *Scaffold) SP(uri string) string {
-	uri = strings.Replace(uri, "/img/", fmt.Sprintf("/img/%v/", cfg.Get().TS), 1)
-	// todo - same replacement for /js/ and /css/
-	uri = path.Join("/", cfg.Get().PrefURI, uri)
+	parts := strings.Split(uri, "/")
+	if len(parts) > 3 { // behold empty token from leading "/"
+		return uri
+	}
+	needle := fmt.Sprintf("/%v/", parts[1])
+	replacement := fmt.Sprintf("/%v/%v/", parts[1], cfg.Get().TS)
+	uri = strings.Replace(uri, needle, replacement, 1)
 	return uri
 }
 

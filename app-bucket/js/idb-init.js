@@ -3,6 +3,10 @@ const msg = {
     body:        "bodyField.value",
 };
 
+/* 
+    createObjectStore is synchroneous
+
+*/
 
 var store = {
     db: null,
@@ -37,9 +41,10 @@ var store = {
     outboxPutAndSync: async msg => {
         try {
             const db = await store.init();
-            const tx = db.transaction('outbox', 'readwrite');
-            const putState =  await tx.objectStore('outbox').put(msg);
-            console.error(`putState`, {putState});
+            const tx = await db.transaction('outbox', 'readwrite');
+            const tb = await tx.objectStore('outbox');  // table
+            const putState =  await tb.put(msg);
+            console.log(`putState`, {putState});
             if (false) {
                 phoneNumberField.value = '';
             }

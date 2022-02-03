@@ -45,8 +45,10 @@
 
 <span class='content-separator'></span> 
 <form class="content" name="frmMain" method="POST" action="/" >
-    Input 01 <input type="text"   name="inp01" ><br>
-    Input 02 <input type="number" name="inp02"  min=0 max=10  value="11" > deliberately invalid <br>
+    <label for="inp01">label for inp 1</label>
+    <input type="text"   name="inp01" ><br>
+    <label for="inp02">label for inp 2</label>
+    <input type="number" name="inp02"  min=0 max=10  value="11" > deliberately invalid <br>
     {{.Content}}
 </form>
 <span class='content-separator'></span> 
