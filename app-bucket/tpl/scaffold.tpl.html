@@ -40,15 +40,19 @@
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/index.html"    target="" >Home</a>
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/dynpage.html"  target="" >Dyn page</a>
         &nbsp; &nbsp; &nbsp; &nbsp; <a href="/dynpage.html?refuse=1"  target="" >Dyn 210</a>
+        &nbsp; &nbsp; &nbsp; &nbsp; <a href="#" id="dbExample"  target="" >DB</a>
     </form>	
 </nav>
 
 <span class='content-separator'></span> 
 <form class="content" name="frmMain" method="POST" action="/" >
-    <label for="inp01">label for inp 1</label>
-    <input type="text"   name="inp01" ><br>
-    <label for="inp02">label for inp 2</label>
-    <input type="number" name="inp02"  min=0 max=10  value="11" > deliberately invalid <br>
+    <!-- labels must encompass inputs for lighthouse -->
+    <label for="inp01">label for inp 1
+        <input type="text"   name="inp01" ><br>
+    </label>
+    <label for="inp02">label for inp 2
+        <input type="number" name="inp02"  min=0 max=10  value="11" > deliberately invalid <br>
+    </label>
     {{.Content}}
 </form>
 <span class='content-separator'></span> 

@@ -266,13 +266,16 @@ window.addEventListener("load",  evt => {
     var html = document.body.parentNode;
     html.addEventListener("touchstart", outsideMenu, false);
     html.addEventListener('click', outsideMenu, false);
-
     var nodesLvl2 = document.getElementsByClassName("nde-2nd-lvl");
     for (var i = 0; i < nodesLvl2.length; i++) {
         nodesLvl2[i].addEventListener('click', closeLevel3, false);
     }
     console.log("outsideMenu and closeLevel3 registered");
 
+
+    const link1 = document.getElementById('dbExample');
+    link1.addEventListener('click', dbExample, false);
+    console.log("dbExample registered");
 
     focusInput();
 

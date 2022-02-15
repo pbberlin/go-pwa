@@ -2,6 +2,8 @@
 
 <img src="./app-bucket/img/mascot.webp" style="float: left; width:20%; min-width: 140px; max-width: 20%; margin-right:5%; margin-bottom: 2%;"> 
 
+[![coverage](https://github.com/pbberlin/go-pwa/actions/workflows/codecov.yml/badge.svg)](https://github.com/pbberlin/go-pwa/actions/workflows/codecov.yml)
+
 Combining the most advanced `golang` techniques  
 into a [Google Lighthouse](https://github.com/GoogleChrome/Lighthouse) approved web app
 

@@ -356,25 +356,43 @@ self.addEventListener('sync', (evt) => {
 
       console.log(`sw-${VS} - sync tag ${evt.tag} - db `);
 
-      try {
-        const outbx = await store.outbox('readonly');
-        const msgs = await outbx.getAll();
-        // send messages
+
+      const fcPost = async (msgOrMsgs) => {
         const rawResponse = await fetch('https://localhost/save-json', {
           method: 'POST',
           headers: {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
-          // body: JSON.stringify({ a: 1, b: 'Textual content' }),
-          body: JSON.stringify(msgs),
+          body: JSON.stringify(msgOrMsgs),
         });
         const rsp = await rawResponse.json();
-        console.log(`save-json response: `,{rsp});
+        console.log(`save-json response: `, {rsp});
+        return rsp;
+      }
 
+
+      // send messages in bulk
+      try {
+        const outb = await db.getStore('outbox', 'readonly');
+        const msgs = await outb.getAll();
+        const rsps = await fcPost(msgs);
+        console.log(`save-json bulk response: `, {rsps});
       } catch (err) {
         console.error(err);
       }
+
+
+      // send messages each
+      try {
+        const outb = await db.getStore('outbox', 'readonly');
+        const msgs = await outb.getAll();
+        const rsps = await Promise.all( msgs.map( msg => fcPost(msg) ) );
+        console.log(`save-json single response: `, {rsps});
+      } catch (err) {
+        console.error(err);
+      }
+
 
     });
   }
