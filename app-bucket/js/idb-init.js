@@ -3,82 +3,150 @@ const msg = {
     body:        "bodyField.value",
 };
 
-/*
-    createObjectStore is synchroneous
+
+const art1 = {
+    title: 'Article 1',
+    date: new Date('1819-01-01'),
+    date2: new Date('1839-01-01'),
+    body: 'content a1',
+}
+
+const art2 = {
+    title: 'Article 2',
+    date: new Date('2019-01-01'),
+    date2: new Date('2039-01-01'),
+    body: 'content a2',
+}
+
+async function getTableInDB(db, name, mode) {
+    const tx = db.transaction(name, mode);
+    return tx.objectStore(name);
+}
+
+async function put(db, name, obj) {
+    const tbl = await getTableInDB(db, name, "readwrite");
+    return await tbl.put(obj);
+}
+
+
+async function doSync() {
+
+    const fcPost = async (msgOrMsgs) => {
+        const rawResponse = await fetch('https://localhost/save-json', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(msgOrMsgs),
+        });
+        const rsp = await rawResponse.json();
+        console.log(`save-json response: `, { rsp });
+        return rsp;
+    }
+
+
+    // send messages in bulk
+    try {
+        const outb = await db.getStore('outbox', 'readonly');
+        const msgs = await outb.getAll();
+        const rsps = await fcPost(msgs);
+        console.log(`save-json bulk response: `, { rsps });
+    } catch (err) {
+        console.error(err);
+    }
+
+
+    // send messages each
+    try {
+        const outb = await db.getStore('outbox', 'readonly');
+        const msgs = await outb.getAll();
+        const rsps = await Promise.all(msgs.map(msg => fcPost(msg)));
+        console.log(`save-json single response: `, { rsps });
+    } catch (err) {
+        console.error(err);
+    }
+
+}
+
+
+
+/* 
+    https://github.com/jakearchibald/idb#opendb
+    https://javascript.info/indexeddb#object-store
 
 */
 
-var db = {
 
-    dbInner: null,
+async function demo1() {
 
-    init: async () => {
-        if (db.dbInner) {
-            return Promise.resolve(db.dbInner);
-        }
-        // init branch
-        const fcUpgrade = upgradeDb => {
-            const store = upgradeDb.createObjectStore(
-                'outbox', 
-                {   
-                    keyPath: 'id',
-                    autoIncrement: true, 
-                }
-            );
-            store.createIndex('date', 'date');
-        }
-        db.dbInner = await idb.open( 'outbox', 1, fcUpgrade );
-        return db.dbInner;
-    },
-
-
-    // const outb = await db.getStore('outbox', 'readwrite');
-    getStore: async (name, mode) => {
-        const db = await db.init();
-        const tx = db.transaction(name, mode);
-        return tx.objectStore(name);
-    },
-
-    outboxPut: async msg => {
-        const db = await db.init();
-        const tx = db.transaction('outbox', 'readwrite');
-        const tb = tx.objectStore('outbox');  // table
-        return await tb.put(msg);
-    },
-
-    // register for a sync
-    outboxPutAndSync: async msg => {
-        try {
-            const putState =  await outboxPut(msg);
-            console.log(`putState`, {putState});
-            if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                return await reg.sync.register('tag-sync-outboxPutAndSync');
+    const db = await idb.openDB('db', 2, {
+        upgrade(db, oldVer, newVer, enhTx) {
+            // if (db.oldVersion == 0) {
+            //     db.createObjectStore(...
+            // }
+            if (!db.objectStoreNames.contains('articles')) {
+                const store = db.createObjectStore('articles', { keyPath: 'id', autoIncrement: true });
+                let idx1 = store.createIndex('price_idx', 'price');
+                let idx2 = store.createIndex('date', 'date');
+                console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore created `);
             } else {
-                return await self.registration.sync.register('tag-sync-outboxPutAndSync');
+                console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore exists `);
             }
-        } catch (err) {
-            console.error(err);
-            // form.submit();
-        }
-    },
+
+            if (!db.objectStoreNames.contains('table2')) {
+                const store = db.createObjectStore('table2', {  });  // no "in-line keys"
+                let idx1 = store.createIndex('idx_name', 'price');
+            }
+
+
+            if (oldVer ==1 && newVer == 2) {
+                // const tx = db.transaction('articles', 'readwrite'); // cannot use; need to use enhTx
+                const store = enhTx.objectStore('articles');
+                let idx2 = store.createIndex('date3', 'date3');
+                console.log(`Vs ${oldVer}--${newVer}: db schema:  index created `);
+            }
+        },
+        blocked(){    console.error("blocked"   ) },
+        blocked(){    console.error("blocking"  ) },
+        terminated(){ console.error("terminated") },
+    });
+
+    console.log("db.objectStoreNames", db.objectStoreNames);
+
+
+    // Add an article:
+    await db.add('articles', art1);
+    await db.add('articles', art2);
+
+
+    try {
+        const tx = db.transaction('table2', 'readwrite');
+        const tbl = tx.objectStore('table2');
+        const val = (await tbl.get('counter')) || 0;
+        await tbl.put( val+1, 'counter');
+        await tx.done;
+        console.log(`a.) atomic counter val is ${val}`);
+    } catch (err) {
+        console.error(err);
+    }
+
+    // short notation for above - based on idb library wrapper
+    try {
+        const val = (await db.get('table2', 'counter')) || 0;
+        await db.put('table2',  val+1, 'counter');
+        console.log(`b.) atomic counter val is ${val}`);
+    } catch (err) {
+        console.error(err);
+    }
+
 
 }
 
-
-async function dbExampleExec() {
-    console.log(`db example exec start`);
-    const outb = await db.getStore('outbox', 'readwrite');
-    const val = (await outb.get('counter')) || 0;
-    await outb.put(val + 1, 'counter');
-    await tx.done;    
-    console.log(`db example exec end ${val}`);
-    return 1;
-
-}
 
 async function dbExample() {
     console.log(`db example start`);
-    let igno = await dbExampleExec();
+    await demo1();
     console.log(`db example end`);
 }
+

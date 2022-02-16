@@ -281,3 +281,13 @@ window.addEventListener("load",  evt => {
 
 
 });
+
+
+
+window.addEventListener('unhandledrejection', evt => {
+    console.log('unhandledrejection');
+    let rqt = evt.target; // IndexedDB native request object
+    console.error(rqt);
+    let err = evt.reason; // Unhandled error object, same as request.error
+    console.error(err);
+});

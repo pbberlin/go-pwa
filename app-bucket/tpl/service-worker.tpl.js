@@ -348,53 +348,11 @@ self.addEventListener('sync', (evt) => {
     console.log(`sw-${VS} - sync tag ${evt.tag} - before waitUntil `);
 
     evt.waitUntil( async () => {
-
       console.log(`sw-${VS} - sync tag ${evt.tag} - after  waitUntil `);
-
       const cch = await caches.open(CACHE_KEY);
       cch.add(new Request('/home-sync.html', reqOpts));
-
-      console.log(`sw-${VS} - sync tag ${evt.tag} - db `);
-
-
-      const fcPost = async (msgOrMsgs) => {
-        const rawResponse = await fetch('https://localhost/save-json', {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(msgOrMsgs),
-        });
-        const rsp = await rawResponse.json();
-        console.log(`save-json response: `, {rsp});
-        return rsp;
-      }
-
-
-      // send messages in bulk
-      try {
-        const outb = await db.getStore('outbox', 'readonly');
-        const msgs = await outb.getAll();
-        const rsps = await fcPost(msgs);
-        console.log(`save-json bulk response: `, {rsps});
-      } catch (err) {
-        console.error(err);
-      }
-
-
-      // send messages each
-      try {
-        const outb = await db.getStore('outbox', 'readonly');
-        const msgs = await outb.getAll();
-        const rsps = await Promise.all( msgs.map( msg => fcPost(msg) ) );
-        console.log(`save-json single response: `, {rsps});
-      } catch (err) {
-        console.error(err);
-      }
-
-
     });
+
   }
 
   console.log(`sw-${VS} - sync tag ${evt.tag} - stop `);
