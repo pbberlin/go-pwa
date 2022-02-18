@@ -9,5 +9,6 @@
 	],
 	"allow_http": true,
 	"auto_redirect_http": true,
-	"precompress_gzip": true
+	"static_files_gzip": true,
+	"schema_version": 2
 }

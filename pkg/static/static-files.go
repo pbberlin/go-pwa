@@ -1,4 +1,4 @@
-package main
+package static
 
 import (
 	"bytes"
@@ -14,73 +14,151 @@ import (
 	texttpl "text/template"
 
 	"github.com/zew/https-server/pkg/cfg"
+	"github.com/zew/https-server/pkg/gziphandler"
 	"github.com/zew/https-server/pkg/gzipper"
 )
 
-// include directory files into service worker install pre-cache
-type preCacheByServiceWorker struct {
+// serviceWorkerPreCache contains settings
+// to include directory files into service worker install pre-cache
+type serviceWorkerPreCache struct {
 	cache             bool     // part of service worker install pre-cache
 	includeExtensions []string // only include files with these extensions, i.e. ".webp"
 }
 
+// dirT contains settings for a directory of static files
 type dirT struct {
-	isFile  bool // mostly directories, a few special files like favicon.ico, robots.txt
-	urlPath string
-	src     string // directory name; app path
+	isSingleFile bool // mostly directories, a few special files like favicon.ico, robots.txt
 
-	GZIP         bool // create .gzipped file during preprocess
-	swpc         preCacheByServiceWorker
-	HeadTemplate string // template for HTML head section, if any
+	src      string // server side directory name; app path
+	srcTpl   string // server side template file
+	urlPath  string // client side URI
+	MimeType string
 
-	HTTPCache         int
-	MimeType          string
 	includeExtensions []string // only include files with these extensions, i.e. ".webp"
+
+	preGZIP  bool // file is gzipped during preprocess
+	liveGZIP bool // file is gzipped at each request time
+	swpc     serviceWorkerPreCache
+
+	HeadTemplate string // template for HTML head section, i.e. "<script src=..." or "<link href=..."
+
+	HTTPCache int // HTTP response header caching time
 }
 
-func src1() {
+type dirsT []dirT
+
+func (dirs dirsT) Register(mux *http.ServeMux) {
+
+	for _, dir := range dirs {
+
+		if dir.isSingleFile {
+			mux.HandleFunc(dir.urlPath, serveStatic)
+		} else {
+			if cfg.Get().StaticFilesGZIP && dir.preGZIP {
+				mux.HandleFunc(dir.urlPath, serveStatic)
+			} else if cfg.Get().StaticFilesGZIP && dir.liveGZIP {
+				mux.Handle(dir.urlPath, gziphandler.GzipHandler(http.HandlerFunc(serveStatic)))
+			} else {
+				mux.HandleFunc(dir.urlPath, serveStatic)
+				// mux.Handle(dir.urlPath, http.HandlerFunc(serveStatic))
+			}
+		}
+
+	}
 
 }
 
-var dirs = []dirT{
+func Register(mux *http.ServeMux) {
+	dirs.Register(mux)
+}
+
+var dirs = dirsT{
+
+	// special files - single files
 	{
-		src:  "./app-bucket/js-service-worker/",
-		GZIP: true,
-		swpc: preCacheByServiceWorker{
+		isSingleFile: true,
+		urlPath:      "/service-worker.js",
+		src:          "./app-bucket/js-service-worker/service-worker.js",
+		srcTpl:       "./app-bucket/tpl/service-worker.tpl.js",
+		MimeType:     "application/javascript",
+
+		preGZIP: true,
+		swpc: serviceWorkerPreCache{
 			cache: false,
 		},
 		HTTPCache: 60 * 60 * 120,
-		MimeType:  "application/javascript",
 	},
 	{
-		src:  "./app-bucket/js/",
-		GZIP: true,
-		swpc: preCacheByServiceWorker{
+		isSingleFile: true,
+		// always requested from root
+		urlPath:  "/favicon.ico",
+		src:      "./app-bucket/img/favicon.ico",
+		MimeType: "image/x-icon",
+
+		preGZIP: true,
+		swpc: serviceWorkerPreCache{
+			cache: true,
+		},
+		HTTPCache: 60 * 60 * 120,
+	},
+	{
+		isSingleFile: true,
+		urlPath:      "/robots.txt",
+		src:          "./app-bucket/txt/robots.txt",
+		MimeType:     "text/plain",
+		// no caching since file is not requested by web browsers
+	},
+
+	//
+	// directories
+	{
+		src:      "./app-bucket/js/",
+		urlPath:  "/js/",
+		MimeType: "application/javascript",
+
+		preGZIP: true,
+		swpc: serviceWorkerPreCache{
 			cache: true,
 		},
 		HeadTemplate: `	<script src="/js/%s/%v" nonce="%s" ></script>`,
 		HTTPCache: 60 * 60 * 120,
-		MimeType:  "application/javascript",
 	},
 	{
-		src:  "./app-bucket/css/",
-		GZIP: true,
-		swpc: preCacheByServiceWorker{
+		src:      "./app-bucket/css/",
+		urlPath:  "/css/",
+		MimeType: "text/css",
+
+		preGZIP: true,
+		swpc: serviceWorkerPreCache{
 			cache: true,
 		},
 		HeadTemplate: `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" media="screen" />`,
 		HTTPCache: 60 * 60 * 120,
-		MimeType:  "text/css",
 	},
 	{
-		src:  "./app-bucket/img/",
-		GZIP: false, // webp files are already compressed
-		swpc: preCacheByServiceWorker{
+		src:      "./app-bucket/json/",
+		urlPath:  "/json/",
+		MimeType: "application/json",
+
+		preGZIP: true,
+		swpc: serviceWorkerPreCache{
+			cache: true,
+		},
+		// HeadTemplate: ``,
+		HTTPCache: 60 * 60 * 120,
+	},
+	{
+		src:               "./app-bucket/img/",
+		urlPath:           "/img/",
+		MimeType:          "image/webp",
+		includeExtensions: []string{".webp", ".ico"},
+
+		preGZIP: false, // webp files are already compressed
+		swpc: serviceWorkerPreCache{
 			cache:             true,
 			includeExtensions: []string{".webp"},
 		},
-		HTTPCache:         60 * 60 * 120,
-		MimeType:          "image/webp",
-		includeExtensions: []string{".webp", ".ico"},
+		HTTPCache: 60 * 60 * 120,
 	},
 }
 
@@ -88,18 +166,7 @@ func init() {
 	// cfg.RunHandleFunc(prepareStatic, "/prepare-static")
 }
 
-var staticFilesSeed = []string{
-	"/favicon.ico", // always requested from root
-	"/index.html",
-	"/offline.html",
-
-	// ... dynamic css, js, webp
-
-	// example for external res
-	// "https://fonts.google.com/icon?family=Material+Icons",
-
-}
-
+// filesOfDir returns all files and directories inside dirSrc
 func filesOfDir(dirSrc string) ([]fs.FileInfo, error) {
 	dirHandle, err := os.Open(dirSrc) // open
 	if err != nil {
@@ -142,33 +209,38 @@ func javascriptTemplate(srcPth string, w io.Writer) {
 
 }
 
-// prepareServiceWorker compiles a list of files and a version
-func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
+func serviceWorkerCacheList(w http.ResponseWriter) []string {
 
-	srcPth := "./app-bucket/tpl/service-worker.tpl.js"
-	t, err := htmltpl.ParseFiles(srcPth)
-	if err != nil {
-		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
-		return
+	var staticFilesSeed = []string{
+		"/index.html",
+		"/offline.html",
+		// ... dynamic css, js, webp, json
+
+		// example for external url res
+		// "https://fonts.google.com/icon?family=Material+Icons",
 	}
 
 	staticFiles := make([]string, len(staticFilesSeed), 16)
 	copy(staticFiles, staticFilesSeed)
 
-	// service worker cache
-	dirs := []string{
-		"./app-bucket/js/",
-		"./app-bucket/css/",
-		"./app-bucket/img/",
-		"./app-bucket/json/",
-	}
+	for _, dir := range dirs {
 
-	for _, dirSrc := range dirs {
+		if dir.isSingleFile {
+			if !dir.swpc.cache {
+				continue
+			}
 
-		files, err := filesOfDir(dirSrc)
+			// 	these files are requested without
+			//  at version prefix in the path
+			//  thus the caching also does not need the cache
+			staticFiles = append(staticFiles, dir.urlPath)
+			continue
+		}
+
+		files, err := filesOfDir(dir.src)
 		if err != nil {
 			fmt.Fprint(w, err)
-			return
+			return staticFiles
 		}
 
 		for _, file := range files {
@@ -186,10 +258,23 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 			}
 
 			// fmt.Fprintf(w, "\t %v\n", file.Name())
-			pth := path.Join(dirSrc, cfg.Get().TS, file.Name())
+			pth := path.Join(dir.src, cfg.Get().TS, file.Name())
 			pth = strings.Replace(pth, "app-bucket/", "./", 1)
 			staticFiles = append(staticFiles, pth)
 		}
+	}
+
+	return staticFiles
+}
+
+// prepareServiceWorker compiles a list of files and a version
+func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
+
+	srcPth := "./app-bucket/tpl/service-worker.tpl.js"
+	t, err := htmltpl.ParseFiles(srcPth)
+	if err != nil {
+		fmt.Fprintf(w, "could not parse service worker template %v\n", err)
+		return
 	}
 
 	bts := &bytes.Buffer{}
@@ -199,7 +284,7 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 		ListOfFiles htmltpl.HTML // neither .JS nor .JSStr do work
 	}{
 		Version:     cfg.Get().TS,
-		ListOfFiles: htmltpl.HTML("'" + strings.Join(staticFiles, "',\n  '") + "'"),
+		ListOfFiles: htmltpl.HTML("'" + strings.Join(serviceWorkerCacheList(w), "',\n  '") + "'"),
 	}
 
 	err = t.Execute(bts, data)
@@ -214,7 +299,7 @@ func prepareServiceWorker(w http.ResponseWriter, req *http.Request) {
 
 //
 //
-func prepareStatic(w http.ResponseWriter, req *http.Request) {
+func PrepareStatic(w http.ResponseWriter, req *http.Request) {
 
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprint(w, "prepare static files\n")
@@ -386,7 +471,7 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 
 	pth := "./app-bucket" + r.URL.Path
 
-	if cfg.Get().PrecompressGZIP {
+	if cfg.Get().StaticFilesGZIP {
 		// not for images, not for json
 		if strings.HasPrefix(r.URL.Path, "/js/") ||
 			strings.HasPrefix(r.URL.Path, "/js-service-worker/") ||

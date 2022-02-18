@@ -52,7 +52,7 @@ type cfg struct {
 
 	// serve precompressed .gzip files
 	//   default is dynamic compression via gziphandler
-	PrecompressGZIP bool `json:"precompress_gzip,omitempty"`
+	StaticFilesGZIP bool `json:"static_files_gzip,omitempty"`
 
 	//
 	// dynamically set on app init
@@ -64,8 +64,9 @@ type cfg struct {
 
 	Dms string `json:"-"` // string representation of domains
 
-	AppDir string `json:"-"` // server side app dir; do we still need this - or is ./... always sufficient?
-	TS     string `json:"-"` // prefix 'vs-'  and then timestamp of app start
+	AppDir        string `json:"-"`              // server side app dir; do we still need this - or is ./... always sufficient?
+	TS            string `json:"-"`              // prefix 'vs-'  and then timestamp of app start
+	SchemaVersion int    `json:"schema_version"` // client database schema version
 
 	PrefURI string `json:"pref_uri,omitempty"`
 }
@@ -84,7 +85,9 @@ var defaultCfg = &cfg{
 	AllowHTTP:        true,
 	AutoRedirectHTTP: true,
 
-	PrecompressGZIP: true,
+	StaticFilesGZIP: true,
+
+	SchemaVersion: 2,
 }
 
 func (cfg *cfg) cSP() string {

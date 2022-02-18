@@ -283,7 +283,9 @@ window.addEventListener("load",  evt => {
 });
 
 
-
+/* 
+    this processes exceptions outside any catch block
+*/
 window.addEventListener('unhandledrejection', evt => {
     console.log('unhandledrejection');
     let rqt = evt.target; // IndexedDB native request object

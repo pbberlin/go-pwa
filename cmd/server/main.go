@@ -10,7 +10,7 @@ import (
 
 	"github.com/zew/https-server/pkg/cfg"
 	"github.com/zew/https-server/pkg/db"
-	"github.com/zew/https-server/pkg/gziphandler"
+	"github.com/zew/https-server/pkg/static"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -46,7 +46,7 @@ func main() {
 	var err error
 
 	cfg.Headless(cfg.Load, "/config/load")
-	cfg.Headless(prepareStatic, "/prepare-static")
+	cfg.Headless(static.PrepareStatic, "/prepare-static")
 
 	db.Initialize()
 
@@ -59,31 +59,17 @@ func main() {
 	// mux.HandleFunc("/config/load", cfg.Load)
 	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
 		cfg.Load(w, r)
-		prepareStatic(w, r)
+		static.PrepareStatic(w, r)
 	})
 	mux.HandleFunc("/hello", plain)
 	mux.HandleFunc("/save-json", saveJson)
 
-	if cfg.Get().PrecompressGZIP {
-		mux.HandleFunc("/js/", serveStatic)
-		mux.HandleFunc("/css/", serveStatic)
-	} else {
-		mux.Handle("/js/", gziphandler.GzipHandler(http.HandlerFunc(serveStatic)))
-		mux.Handle("/css/", gziphandler.GzipHandler(http.HandlerFunc(serveStatic)))
-	}
-
-	mux.Handle("/json/", http.HandlerFunc(serveStatic))
-	mux.Handle("/img/", http.HandlerFunc(serveStatic))
-
-	// special static files - must be in root dir
-	mux.HandleFunc("/favicon.ico", serveStatic)
-	mux.HandleFunc("/robots.txt", serveStatic)
-	mux.HandleFunc("/service-worker.js", serveStatic)
+	static.Register(mux)
 
 	switch cfg.Get().ModeHTTPS {
 
 	case "https-localhost-cert":
-		// localhost development; based on [Filipo Valsordas tool](https://github.com/FiloSottile/mkcert)
+		// localhost development using https://github.com/FiloSottile/mkcert
 		err = http.ListenAndServeTLS(
 			":443", "./certs/server.pem", "./certs/server.key", mux)
 
@@ -92,7 +78,6 @@ func main() {
 		err = http.Serve(lstnr, mux)
 
 	case "letsenrypt-extended":
-
 		mgr := &autocert.Manager{
 			Prompt:     autocert.AcceptTOS,
 			HostPolicy: autocert.HostWhitelist(cfg.Get().Domains...),

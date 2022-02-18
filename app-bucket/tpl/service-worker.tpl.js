@@ -329,7 +329,7 @@ self.addEventListener('fetch', (evt) => {
 
 
 importScripts(`/js/${VS}/idb.js`);
-importScripts(`/js/${VS}/idb-init.js`);
+importScripts(`/js/${VS}/db.js`);
 
 // not triggered by request.mode navigate
 //   https://davidwalsh.name/background-sync
