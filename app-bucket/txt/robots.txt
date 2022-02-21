@@ -1,2 +1,1 @@
 User-agent: Googlebot Disallow: /example-subfolder/
-User-agent: Googlebot Disallow: /example-subfolder/

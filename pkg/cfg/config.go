@@ -40,7 +40,8 @@ func init() {
 //
 // cfg contain app scope data
 type cfg struct {
-	Title       string `json:"title,omitempty"`       // default app title
+	Title       string `json:"title,omitempty"`       // app title - into html title tag
+	TitleShort  string `json:"title_short,omitempty"` // => manifest JSON
 	Description string `json:"description,omitempty"` // default meta tag description
 
 	ModeHTTPS string `json:"mode_https,omitempty"`
@@ -73,6 +74,7 @@ type cfg struct {
 
 var defaultCfg = &cfg{
 	Title:       "your app title",
+	TitleShort:  "app123",
 	Description: "default meta tag description",
 
 	ModeHTTPS: "https-localhost-cert",

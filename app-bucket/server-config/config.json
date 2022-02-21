@@ -1,5 +1,6 @@
 {
 	"title": "Golang PWA",
+	"title_short": "Go PWA",
 	"description": "Golang HTTPS server PWA prototype",
 
 	"mode_https": "https-localhost-cert",

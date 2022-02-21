@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+  "name": "{{.Title}}",
+  "short_name": "{{.TitleShort}}",
+  "description": "{{.Description}}",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff",
+  "theme_color": "rgb(228, 223, 206)",
+  "orientation": "portrait-primary",
+  "icons": [
+{{.IconList}}
+],
+  "related_applications": [{
+    "platform": "play",
+    "url": "https://play.google.com/store/apps/details?id=cheeaun.hackerweb"
+  }]
+}
