@@ -14,7 +14,7 @@ import (
 	"strings"
 	texttpl "text/template"
 
-	"github.com/zew/https-server/pkg/cfg"
+	"github.com/pbberlin/go-pwa/pkg/cfg"
 )
 
 // listForPreCaching compiles the list of files with a version

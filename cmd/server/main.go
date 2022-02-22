@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zew/https-server/pkg/cfg"
-	"github.com/zew/https-server/pkg/db"
-	"github.com/zew/https-server/pkg/static"
+	"github.com/pbberlin/go-pwa/pkg/cfg"
+	"github.com/pbberlin/go-pwa/pkg/db"
+	"github.com/pbberlin/go-pwa/pkg/static"
 	"golang.org/x/crypto/acme/autocert"
 )
 

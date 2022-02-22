@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/zew/https-server/pkg/cfg"
+	"github.com/pbberlin/go-pwa/pkg/cfg"
 )
 
 type Scaffold struct {

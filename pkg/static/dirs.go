@@ -46,9 +46,9 @@ import (
 	"path"
 	"strings"
 
-	"github.com/zew/https-server/pkg/cfg"
-	"github.com/zew/https-server/pkg/gziphandler"
-	"github.com/zew/https-server/pkg/gzipper"
+	"github.com/pbberlin/go-pwa/pkg/cfg"
+	"github.com/pbberlin/go-pwa/pkg/gziphandler"
+	"github.com/pbberlin/go-pwa/pkg/gzipper"
 )
 
 func init() {
@@ -296,6 +296,7 @@ func (dirs dirsT) serveStatic(w http.ResponseWriter, r *http.Request) {
 	file, err := os.Open(pth)
 	if err != nil {
 		log.Printf("error: %v", err) // path is in error msg
+		log.Printf("dir: %+v", dir)
 		referrer := r.Header.Get("Referer")
 		if referrer != "" {
 			log.Printf("\tfrom referrer %+v", referrer)

@@ -193,6 +193,10 @@ func Load(w http.ResponseWriter, r *http.Request) {
 }
 
 func Get() *cfg {
+	// this might occur during testing
+	// if defaultCfg == nil {
+	// 	log.Fatalf("config accessed before it has been loaded")
+	// }
 	return defaultCfg
 }
 
