@@ -180,7 +180,7 @@ func manifestIconList(w http.ResponseWriter) string {
 
 	for idx, icon := range icons {
 		icon = filepath.Base(icon)
-		log.Printf("\ticon %v", icon)
+		// log.Printf("\ticon %v", icon)
 
 		fnp := icon                                       // file name part containing the icon size, i.e. 072
 		fnp = strings.TrimSuffix(fnp, filepath.Ext(icon)) // remove trailing .webp
@@ -232,6 +232,31 @@ func execManifest(dirs dirsT, dir dirT, w http.ResponseWriter) {
 		TitleShort:  cfg.Get().TitleShort,
 		Description: cfg.Get().Description,
 		IconList:    htmltpl.HTML(manifestIconList(w)),
+	}
+
+	bts := &bytes.Buffer{}
+	err = t.Execute(bts, data)
+	if err != nil {
+		fmt.Fprintf(w, "could not execute template %v: %v\n", dir.srcTpl, err)
+		return
+	}
+
+	dstPth := path.Join(dir.src, dir.fn)
+	os.WriteFile(dstPth, bts.Bytes(), 0644)
+}
+
+func execDB(dirs dirsT, dir dirT, w http.ResponseWriter) {
+
+	t, err := htmltpl.ParseFiles(dir.srcTpl)
+	if err != nil {
+		fmt.Fprintf(w, "could not parse template %v: %v\n", dir.srcTpl, err)
+		return
+	}
+
+	data := struct {
+		SchemaVersion int
+	}{
+		SchemaVersion: cfg.Get().SchemaVersion,
 	}
 
 	bts := &bytes.Buffer{}

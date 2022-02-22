@@ -1,8 +1,76 @@
+var db = {
+
+    dbInner: null,
+
+    init: async () => {
+        if (db.dbInner) {
+            return Promise.resolve(db.dbInner);
+        }
+        // the third arg are four funcs inside {}; we cannot rewrite them as arrow funcs nor factor them out :-(
+        db.dbInner = await idb.openDB('db', 2 , {
+            upgrade(db, oldVer, newVer, enhTx) {
+                // if (db.oldVersion == 0)  db.createObjectStore(...
+                if (!db.objectStoreNames.contains('articles')) {
+                    const store = db.createObjectStore('articles', { keyPath: 'id', autoIncrement: true });
+                    let idx1 = store.createIndex('price_idx', 'price');
+                    let idx2 = store.createIndex('date', 'date');
+                    console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore created `);
+                } else {
+                    console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore exists `);
+                }
+
+                if (!db.objectStoreNames.contains('table2')) {
+                    const store = db.createObjectStore('table2', {});  // no "in-line keys"
+                    let idx1 = store.createIndex('idx_name', 'price');
+                }
+
+
+                if (oldVer == 1 && newVer == 2) {
+                    // const tx = db.transaction('articles', 'readwrite'); // cannot use; need to use enhTx
+                    const store = enhTx.objectStore('articles');
+                    let idx2 = store.createIndex('date3', 'date3');
+                    console.log(`Vs ${oldVer}--${newVer}: db schema:  index created `);
+                }
+            },
+            blocked() { console.error("blocked") },
+            blocked() { console.error("blocking") },
+            terminated() { console.error("terminated without db.close()") },
+        });
+        console.log("db.objectStoreNames", db.objectStoreNames);
+        return db.dbInner;
+    },
+
+
+    // const articles = await db.getTableInDB('articles', 'readwrite');
+    getTableInDB: async (name, mode) => {
+        const db1 = await db.init();
+        const tx = db1.transaction(name, mode);
+        return tx.objectStore(name);
+    },
+
+    /*
+    async function getTableInDB(db, name, mode) {
+        const tx = db.transaction(name, mode);
+        return tx.objectStore(name);
+    }
+
+    async function put(db, name, obj) {
+        const tbl = await getTableInDB(db, name, "readwrite");
+        return await tbl.put(obj);
+    }
+    */
+
+
+}
+
+
+// demo stuff
+
+
 const msg = {
     phoneNumber: "phoneNumberField.value",
     body:        "bodyField.value",
 };
-
 
 const art1 = {
     title: 'Article 1',
@@ -69,72 +137,11 @@ async function doSync() {
 */
 
 
-var db = {
-
-    dbInner: null,
-
-    init: async () => {
-        if (db.dbInner) {
-            return Promise.resolve(db.dbInner);
-        }
-        db.dbInner =await idb.openDB('db', 2, {
-            upgrade(db, oldVer, newVer, enhTx) {
-                // if (db.oldVersion == 0)  db.createObjectStore(...
-                if (!db.objectStoreNames.contains('articles')) {
-                    const store = db.createObjectStore('articles', { keyPath: 'id', autoIncrement: true });
-                    let idx1 = store.createIndex('price_idx', 'price');
-                    let idx2 = store.createIndex('date', 'date');
-                    console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore created `);
-                } else {
-                    console.log(`Vs ${oldVer}--${newVer}: db schema: objectStore exists `);
-                }
-
-                if (!db.objectStoreNames.contains('table2')) {
-                    const store = db.createObjectStore('table2', {});  // no "in-line keys"
-                    let idx1 = store.createIndex('idx_name', 'price');
-                }
 
 
-                if (oldVer == 1 && newVer == 2) {
-                    // const tx = db.transaction('articles', 'readwrite'); // cannot use; need to use enhTx
-                    const store = enhTx.objectStore('articles');
-                    let idx2 = store.createIndex('date3', 'date3');
-                    console.log(`Vs ${oldVer}--${newVer}: db schema:  index created `);
-                }
-            },
-            blocked() { console.error("blocked") },
-            blocked() { console.error("blocking") },
-            terminated() { console.error("terminated without db.close()") },
-        });
-        console.log("db.objectStoreNames", db.objectStoreNames);
-        return db.dbInner;
-    },
+async function dbExample() {
 
-
-    // const articles = await db.getTableInDB('articles', 'readwrite');
-    getTableInDB: async (name, mode) => {
-        const db1 = await db.init();
-        const tx = db1.transaction(name, mode);
-        return tx.objectStore(name);
-    },
-
-    /*
-    async function getTableInDB(db, name, mode) {
-        const tx = db.transaction(name, mode);
-        return tx.objectStore(name);
-    }
-
-    async function put(db, name, obj) {
-        const tbl = await getTableInDB(db, name, "readwrite");
-        return await tbl.put(obj);
-    }
-    */    
-
-
-}
-
-
-async function demo1() {
+    console.log(`db example start`);
 
     const dbP = await db.init();
     // Add an article:
@@ -162,13 +169,9 @@ async function demo1() {
         console.error(err);
     }
 
-
-}
-
-
-async function dbExample() {
-    console.log(`db example start`);
-    await demo1();
     console.log(`db example end`);
+
 }
+
+
 

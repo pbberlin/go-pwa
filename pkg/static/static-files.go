@@ -167,6 +167,11 @@ func (dirs dirsT) PrepareStatic(w http.ResponseWriter, req *http.Request) {
 			if dir.tplExecutor != nil {
 				dir.tplExecutor(dirs, dir, w)
 			}
+
+			if dir.urlPath == "" {
+				continue
+			}
+
 			zipOrCopy(w, dir, "")
 
 			continue // separate loop
@@ -312,6 +317,9 @@ func (dirs dirsT) serveStatic(w http.ResponseWriter, r *http.Request) {
 func (dirs dirsT) Register(mux *http.ServeMux) {
 
 	for _, dir := range dirs {
+		if dir.urlPath == "" {
+			continue
+		}
 		if dir.isSingleFile {
 			mux.HandleFunc(dir.urlPath, dirs.serveStatic)
 		} else {
@@ -326,135 +334,4 @@ func (dirs dirsT) Register(mux *http.ServeMux) {
 		}
 	}
 
-}
-
-//
-//
-// default static config
-
-var staticDirsDefault = dirsT{
-
-	// special files - single files
-	"/service-worker.js": {
-		isSingleFile: true,
-		srcTpl:       "./app-bucket/tpl/service-worker.tpl.js",
-		tplExecutor:  execServiceWorker,
-
-		src: "./app-bucket/js-service-worker/",
-		fn:  "service-worker.js",
-
-		urlPath:   "/service-worker.js",
-		MimeType:  "application/javascript",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: false,
-		},
-	},
-	"/manifest.json": {
-		isSingleFile: true,
-		srcTpl:       "./app-bucket/tpl/manifest.tpl.json",
-		tplExecutor:  execManifest,
-
-		src: "./app-bucket/json/",
-		fn:  "/manifest.json",
-
-		urlPath:   "/manifest.json",
-		MimeType:  "application/json",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: true,
-		},
-	},
-	"/favicon.ico": {
-		isSingleFile: true,
-		// always requested from root
-		src: "./app-bucket/img/",
-		fn:  "favicon.ico",
-
-		urlPath:   "/favicon.ico",
-		MimeType:  "image/x-icon",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: true,
-		},
-	},
-	"/robots.txt": {
-		isSingleFile: true,
-		src:          "./app-bucket/txt/",
-		fn:           "robots.txt",
-
-		urlPath:  "/robots.txt",
-		MimeType: "text/plain",
-		// no caching since file is not requested by web browsers
-	},
-
-	//
-	// directories
-	"/js": {
-		src: "./app-bucket/js/",
-
-		urlPath:   "/js/",
-		MimeType:  "application/javascript",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: true,
-		},
-		HeadTemplate: `	<script src="/js/%s/%v" nonce="%s" ></script>`,
-	},
-	"/css": {
-		src: "./app-bucket/css/",
-
-		urlPath:   "/css/",
-		MimeType:  "text/css",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: true,
-		},
-		HeadTemplate: `	<link href="/css/%s/%s" nonce="%s" rel="stylesheet" type="text/css" media="screen" />`,
-	},
-	"/json": {
-		src: "./app-bucket/json/",
-
-		urlPath:   "/json/",
-		MimeType:  "application/json",
-		HTTPCache: 60 * 60 * 120,
-
-		preGZIP: true,
-		swpc: serviceWorkerPreCache{
-			cache: true,
-		},
-		// HeadTemplate: ``,
-	},
-	"/img": {
-		src: "./app-bucket/img/",
-
-		urlPath:           "/img/",
-		MimeType:          "image/webp",
-		HTTPCache:         60 * 60 * 120,
-		includeExtensions: []string{".webp", ".ico"},
-
-		preGZIP: false, // webp files are already compressed
-		swpc: serviceWorkerPreCache{
-			cache:             true,
-			includeExtensions: []string{".webp"},
-		},
-	},
-}
-
-func Register(mux *http.ServeMux) {
-	staticDirsDefault.Register(mux)
-}
-
-func PrepareStatic(w http.ResponseWriter, req *http.Request) {
-	staticDirsDefault.PrepareStatic(w, req)
 }
