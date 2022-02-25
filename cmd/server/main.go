@@ -54,15 +54,16 @@ func main() {
 	mux.HandleFunc("/", home)
 	mux.HandleFunc("/index.html", home)
 	mux.HandleFunc("/offline.html", offline)
+	mux.HandleFunc("/layout-template-for-js.html", layoutTemplateForJS)
 
-	// mux.HandleFunc("/prepare-static", prepareStatic)
-	// mux.HandleFunc("/config/load", cfg.Load)
+	mux.HandleFunc("/hello", plain)
+	mux.HandleFunc("/save-json", saveJson)
+	mux.HandleFunc("/db-test-data", DBTestData)
+
 	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
 		cfg.Load(w, r)
 		static.PrepareStatic(w, r)
 	})
-	mux.HandleFunc("/hello", plain)
-	mux.HandleFunc("/save-json", saveJson)
 
 	static.Register(mux)
 

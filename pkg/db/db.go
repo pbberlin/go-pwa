@@ -11,6 +11,22 @@ import (
 
 // https://gorm.io/docs/
 
+type Category struct {
+	gorm.Model
+	Name          string `gorm:"uniqueIndex"`
+	UpsertCounter int
+	Entry         Entry `gorm:"foreignKey:CategoryID"`
+}
+
+type Entry struct {
+	gorm.Model
+	Content       string
+	UpsertCounter int
+	CategoryID    uint
+}
+
+// ---
+
 type Product struct {
 	gorm.Model
 	Code  string
@@ -49,16 +65,34 @@ func (u *User) BeforeCreate(tx *gorm.DB) (err error) {
 	return
 }
 
+var db *gorm.DB
+
+func Get() *gorm.DB {
+	return db
+}
+
 func Initialize() {
 
 	dbCfg := &gorm.Config{
 		CreateBatchSize: 10,
 	}
 
-	db, err := gorm.Open(sqlite.Open("./app-bucket/server-config/main.sqlite"), dbCfg)
+	var err error
+	db, err = gorm.Open(sqlite.Open("./app-bucket/server-config/main.sqlite"), dbCfg)
 	if err != nil {
 		panic("failed to connect database")
 	}
+
+	db.AutoMigrate(&Category{})
+	db.AutoMigrate(&Entry{})
+	// insert
+
+	//
+
+	return
+	//
+	//
+	// ---------------------
 
 	db.AutoMigrate(&Product{})
 

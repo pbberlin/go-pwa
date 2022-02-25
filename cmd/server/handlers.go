@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/pbberlin/go-pwa/pkg/db"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -48,11 +50,23 @@ func plain(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "This is an example server.\n")
 }
 
+func DBTestData(w http.ResponseWriter, r *http.Request) {
+	db.TestData()
+}
+
 func saveJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
 	if r.PostFormValue("refuse") != "" {
 		return
 	}
 	fmt.Fprintf(w, "%+v", r.PostForm)
+}
+
+func layoutTemplateForJS(w http.ResponseWriter, r *http.Request) {
+	cnt := &strings.Builder{}
+	fmt.Fprintf(cnt, "${content}")
+	sc := &Scaffold{}
+	sc.Title = "${headerTitle}"
+	sc.Desc = "${headerDesc}"
+	sc.render(w, cnt)
 }
