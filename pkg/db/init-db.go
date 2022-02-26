@@ -9,20 +9,15 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// https://gorm.io/docs/
-
-type Category struct {
-	gorm.Model
-	Name          string `gorm:"uniqueIndex"`
-	UpsertCounter int
-	Entry         Entry `gorm:"foreignKey:CategoryID"`
-}
-
 type Entry struct {
 	gorm.Model
 	Content       string
 	UpsertCounter int
-	CategoryID    uint
+
+	// Has one => primary key and object
+	// gorm.io/docs/has_one.html
+	CategoryID int
+	Category   Category
 }
 
 // ---

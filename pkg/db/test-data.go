@@ -3,10 +3,18 @@ package db
 import (
 	"log"
 
-	"github.com/pbberlin/go-pwa/pkg/stacktrace"
+	"github.com/pbberlin/go-pwa/pkg/dbg"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+func LogRes(res *gorm.DB) {
+	log.Printf("rows created/updated: %v", res.RowsAffected)
+	if res.Error != nil {
+		log.Printf("error %v", res.Error)
+	}
+	// log.Printf("statement \n %v", res.Statement)
+}
 
 func TestData() {
 
@@ -15,34 +23,34 @@ func TestData() {
 	defer func() {
 		if err := recover(); err != nil {
 			log.Printf("Panic caught: %v", err)
-			stacktrace.Log()
+			dbg.StackTrace()
 		}
 	}()
 
-	setUpdateCounter := clause.Assignments(
+	counterSet := clause.Assignments(
 		map[string]interface{}{
 			"upsert_counter": 4,
 		},
 	)
-	incrementUpdateCounter := clause.Assignments(
+	counterInc := clause.Assignments(
 		map[string]interface{}{
 			// "upsert_counter": gorm.Expr("GREATEST(upsert_counter, VALUES(upsert_counter))"),
 			"upsert_counter": gorm.Expr("upsert_counter+4"),
 		},
 	)
-	_, _ = setUpdateCounter, incrementUpdateCounter
+	_, _ = counterSet, counterInc
 
 	onDuplicateName := db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
-			DoUpdates: incrementUpdateCounter,
+			DoUpdates: counterInc,
 			// UpdateAll: true, // prevents DoUpdates from execution
 		},
 	)
 	onDuplicateID := db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: incrementUpdateCounter,
+			DoUpdates: counterInc,
 			// UpdateAll: true, // prevents DoUpdates from execution
 		},
 	)
@@ -51,7 +59,7 @@ func TestData() {
 	onConflictUpdateAll := db.Clauses(
 		clause.OnConflict{
 			UpdateAll: true,
-			DoUpdates: incrementUpdateCounter,
+			DoUpdates: counterInc,
 		},
 	)
 	_ = onConflictUpdateAll
@@ -67,11 +75,7 @@ func TestData() {
 	for _, cat := range cats {
 
 		res := onDuplicateName.Create(&cat)
-
-		log.Printf("rows created/updated: %v", res.RowsAffected)
-		if res.Error != nil {
-			log.Printf("error %v", res.Error)
-		}
+		LogRes(res)
 	}
 
 	//
@@ -85,24 +89,27 @@ func TestData() {
 		{
 			Content: "Tootpaste",
 			// Category: Category{Name: "Groceries"},
-			CategoryID: 1,
+			CategoryID: CategoriesByName("Groceries"),
 		},
 		{
 
-			Content: "WC Cleanser",
-			// Category: Category{Name: "Groceries"},
-			CategoryID: 1,
+			Content:    "WC Cleanser",
+			CategoryID: CategoriesByName("Groceries"),
 		},
 		{
 
-			Content: "Coffee",
-			// Category: Category{Name: "Snacking"},
-			CategoryID: 2,
-		}, {
+			Content:    "Coffee",
+			CategoryID: CategoriesByName("Snacking"),
+		},
+		{
 
-			Content: "Cookie",
-			// Category: Category{Name: "Snacking"},
-			CategoryID: 2,
+			Content:    "Cookie",
+			CategoryID: CategoriesByName("Snacking"),
+		},
+		{
+
+			Content:    "Apple Pie",
+			CategoryID: CategoriesByName("Snacking"),
 		},
 	}
 
@@ -111,18 +118,9 @@ func TestData() {
 		//
 		entry.Model = gorm.Model{ID: uint(idx + 1)}
 		// res := db.Create(&entry)
-		// res := onConflictUpdateAll.Create(&entry)
 		res := onDuplicateID.Create(&entry)
+		LogRes(res)
 
-		log.Printf("rows created/updated: %v", res.RowsAffected)
-		if res.Error != nil {
-			log.Printf("error %v", res.Error)
-		}
-		// log.Printf("statement \n %v", res.Statement)
 	}
-
-	a := 2 - 2
-	x := 1 / a
-	_ = x
 
 }
