@@ -1,15 +1,18 @@
 package db
 
 import (
+	"fmt"
 	"log"
+	"time"
 
-	"github.com/pbberlin/go-pwa/pkg/dbg"
+	"github.com/pbberlin/dbg"
+
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 func LogRes(res *gorm.DB) {
-	log.Printf("rows created/updated: %v", res.RowsAffected)
+	log.Printf("%2v affected rows", res.RowsAffected)
 	if res.Error != nil {
 		log.Printf("error %v", res.Error)
 	}
@@ -83,12 +86,22 @@ func TestData() {
 	//
 	//
 	entries := []Entry{
+
+		// {
+		// 	Content: "Tootpaste without Cat",
+		// },
 		{
-			Content: "Tootpaste without Cat",
+			Content:  "Tootpaste with value of cat - existing",
+			Category: Category{Name: "Groceries"},
 		},
 		{
-			Content: "Tootpaste",
-			// Category: Category{Name: "Groceries"},
+			Content:  "Tootpaste with value of cat - new",
+			Category: Category{Name: fmt.Sprintf("Groceries-%v", time.Now().Unix())},
+		},
+
+		//
+		{
+			Content:    "Tootpaste",
 			CategoryID: CategoriesByName("Groceries"),
 		},
 		{
@@ -121,6 +134,29 @@ func TestData() {
 		res := onDuplicateID.Create(&entry)
 		LogRes(res)
 
+	}
+
+	if false {
+		// no categories
+		entries := []Entry{}
+		res := db.Find(&entries)
+		LogRes(res)
+		dbg.Dump(entries[:5])
+	}
+
+	if false {
+		// works
+		entries := []Entry{}
+		res := db.Preload("Category").Find(&entries)
+		LogRes(res)
+		dbg.Dump(entries[:4])
+	}
+
+	{
+		entries := []Entry{}
+		res := db.Preload(clause.Associations).Find(&entries)
+		LogRes(res)
+		dbg.Dump(entries[:4])
 	}
 
 }

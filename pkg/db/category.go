@@ -1,7 +1,7 @@
 package db
 
 import (
-	"github.com/pbberlin/go-pwa/pkg/dbg"
+	"github.com/pbberlin/dbg"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +25,8 @@ func CategoriesByName(s string) int {
 	if len(categories) < 1 {
 		res := db.Find(&categories)
 		LogRes(res)
-		dbg.Dump(categories)
+		dbg.Dump(categories[:2])
+		dbg.Dump(categories[len(categories)-2:])
 	}
 
 	for _, cat := range categories {

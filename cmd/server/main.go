@@ -72,7 +72,11 @@ func main() {
 	case "https-localhost-cert":
 		// localhost development using https://github.com/FiloSottile/mkcert
 		err = http.ListenAndServeTLS(
-			":443", "./certs/server.pem", "./certs/server.key", mux)
+			":443",
+			"./app-bucket/server-config/certs/server.pem",
+			"./app-bucket/server-config/certs/server.key",
+			mux,
+		)
 
 	case "letsenrypt-simple":
 		lstnr := autocert.NewListener(cfg.Get().Domains...)

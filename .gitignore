@@ -19,7 +19,7 @@ tmp/*
 tmp*
 
 # localhost development certificate
-certs/**
+app-bucket/server-config/certs/**
 
 # lighthouse report files
 *.report.html
