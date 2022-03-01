@@ -11,21 +11,13 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func LogRes(res *gorm.DB) {
-	log.Printf("%2v affected rows", res.RowsAffected)
-	if res.Error != nil {
-		log.Printf("error %v", res.Error)
-	}
-	// log.Printf("statement \n %v", res.Statement)
-}
-
 func TestData() {
 
 	db := Get()
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("Panic caught: %v", err)
+			log.Printf("Panic 1 caught: %v", err)
 			dbg.StackTrace()
 		}
 	}()
@@ -88,62 +80,82 @@ func TestData() {
 	entries := []Entry{
 
 		// {
-		// 	Content: "Tootpaste without Cat",
+		// 	Content: "Toothpaste without Cat",
 		// },
 		{
-			Content:  "Tootpaste with value of cat - existing",
+			Content:  "Toothpaste with value of cat - existing",
 			Category: Category{Name: "Groceries"},
 		},
 		{
-			Content:  "Tootpaste with value of cat - new",
+			Content:  "Toothpaste with value of cat - new",
 			Category: Category{Name: fmt.Sprintf("Groceries-%v", time.Now().Unix())},
 		},
 
 		//
 		{
-			Content:    "Tootpaste",
+			Content:    "Toothpaste",
 			CategoryID: CategoriesByName("Groceries"),
 		},
 		{
-
 			Content:    "WC Cleanser",
 			CategoryID: CategoriesByName("Groceries"),
 		},
 		{
-
 			Content:    "Coffee",
 			CategoryID: CategoriesByName("Snacking"),
 		},
 		{
-
 			Content:    "Cookie",
 			CategoryID: CategoriesByName("Snacking"),
+			Tags:       []Tag{{Name: "Indulgence"}, {Name: "Curiosity"}, {Name: "Reward"}, {Name: "Craving"}},
+		},
+
+		// fails
+		/* 		{
+		   			Content:    "Apple Pie",
+		   			CategoryID: CategoriesByName("Snacking"),
+		   			Tags:       []Tag{{Name: "Indulgence"}, {Name: "Reward"}, {Name: "Craving"}},
+		   		},
+		*/
+		// xxx
+		{
+			Content:    "Apple Pie 13",
+			CategoryID: CategoriesByName("Snacking"),
+			Model:      gorm.Model{ID: uint(13)},
+			Tags: []Tag{
+				{Model: gorm.Model{ID: uint(131)}, Name: "131"},
+				{Model: gorm.Model{ID: uint(132)}, Name: "132"},
+			},
 		},
 		{
-
-			Content:    "Apple Pie",
+			Content:    "Apple Pie 14",
 			CategoryID: CategoriesByName("Snacking"),
+			Model:      gorm.Model{ID: uint(14)},
+			Tags: []Tag{
+				{Model: gorm.Model{ID: uint(141)}, Name: "141"},
+				{Model: gorm.Model{ID: uint(142)}, Name: "142"},
+			},
 		},
 	}
 
 	for idx, entry := range entries {
-
-		//
-		entry.Model = gorm.Model{ID: uint(idx + 1)}
+		if entry.Model.ID < 1 {
+			entry.Model = gorm.Model{ID: uint(idx + 1)}
+		}
 		// res := db.Create(&entry)
 		res := onDuplicateID.Create(&entry)
 		LogRes(res)
-
+		log.Printf("finished entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
 	}
 
+	//
 	if false {
-		// no categories
+		// retrives no categories
 		entries := []Entry{}
 		res := db.Find(&entries)
 		LogRes(res)
 		dbg.Dump(entries[:5])
 	}
-
 	if false {
 		// works
 		entries := []Entry{}
@@ -156,7 +168,9 @@ func TestData() {
 		entries := []Entry{}
 		res := db.Preload(clause.Associations).Find(&entries)
 		LogRes(res)
-		dbg.Dump(entries[:4])
+		// dbg.Dump(entries[:4])
+		// dbg.Dump(entries[5:])
+		dbg.Dump(entries)
 	}
 
 }
