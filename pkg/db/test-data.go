@@ -107,7 +107,7 @@ func TestData() {
 		{
 			Content:    "Cookie",
 			CategoryID: CategoriesByName("Snacking"),
-			Tags:       []Tag{{Name: "Indulgence"}, {Name: "Curiosity"}, {Name: "Reward"}, {Name: "Craving"}},
+			TagsU:      []TagU{{Name: "Indulgence"}, {Name: "Curiosity"}, {Name: "Reward"}, {Name: "Craving"}},
 		},
 
 		// fails
@@ -122,7 +122,7 @@ func TestData() {
 			Content:    "Apple Pie 13",
 			CategoryID: CategoriesByName("Snacking"),
 			Model:      gorm.Model{ID: uint(13)},
-			Tags: []Tag{
+			TagsU: []TagU{
 				{Model: gorm.Model{ID: uint(131)}, Name: "131"},
 				{Model: gorm.Model{ID: uint(132)}, Name: "132"},
 			},
@@ -131,7 +131,7 @@ func TestData() {
 			Content:    "Apple Pie 14",
 			CategoryID: CategoriesByName("Snacking"),
 			Model:      gorm.Model{ID: uint(14)},
-			Tags: []Tag{
+			TagsU: []TagU{
 				{Model: gorm.Model{ID: uint(141)}, Name: "141"},
 				{Model: gorm.Model{ID: uint(142)}, Name: "142"},
 			},
@@ -171,6 +171,11 @@ func TestData() {
 		// dbg.Dump(entries[:4])
 		// dbg.Dump(entries[5:])
 		dbg.Dump(entries)
+
+		for _, entry := range entries {
+			err := db.Model(&entry).Association("Tags").Append([]Tag{{Name: "Tag1"}, {Name: "Tag2"}})
+			LogErr(err)
+		}
 	}
 
 }

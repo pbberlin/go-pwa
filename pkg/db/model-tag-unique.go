@@ -6,19 +6,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type Tag struct {
+type TagU struct { // tag unique - belongs to one entry - no multiple uses
 	gorm.Model
 	Name    string `gorm:"uniqueIndex"`
 	EntryID uint
 }
 
-type TagShortJSON struct {
+type TagUShortJSON struct {
 	Name string
 }
 
-func (e Tag) MarshalJSON() ([]byte, error) {
+func (e TagU) MarshalJSON() ([]byte, error) {
 
-	et := TagShortJSON{}
+	et := TagUShortJSON{}
 	et.Name = e.Name
 
 	j, err := json.Marshal(et)

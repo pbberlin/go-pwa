@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -18,13 +19,31 @@ type Entry struct {
 	CategoryID int
 	Category   Category
 
-	Tags []Tag
+	TagsU []TagU // multiple tags - unique to this entry
+
+	Tags []Tag `gorm:"many2many:entry_tag;"` // multiple tags - reusable to other entries
+}
+
+// cutomized M to N table
+type EntryTag struct {
+	EntryID   int `gorm:"primaryKey"`
+	TagID     int `gorm:"primaryKey"`
+	Type      string
+	CreatedAt time.Time
+	DeletedAt gorm.DeletedAt
+}
+
+func init() {
+	// activate EntryTag as custom join table
+	err := db.SetupJoinTable(&Entry{}, "Tags", &EntryTag{})
+	LogErr(err)
 }
 
 type EntryShortJSON struct {
-	Content  string
-	Category string
-	TagNames string
+	Content   string
+	Category  string
+	TagUNames string
+	TagNames  string
 }
 
 func (e Entry) MarshalJSON() ([]byte, error) {
@@ -34,10 +53,10 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 	et.Category = fmt.Sprint(e.Category.ID, ":  ", e.Category.Name)
 
 	nms := ""
-	for _, tg := range e.Tags {
+	for _, tg := range e.TagsU {
 		nms += tg.Name + ", "
 	}
-	et.TagNames = nms
+	et.TagUNames = nms
 
 	j, err := json.Marshal(et)
 	if err != nil {
