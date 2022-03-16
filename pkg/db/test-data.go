@@ -22,43 +22,6 @@ func TestData() {
 		}
 	}()
 
-	counterSet := clause.Assignments(
-		map[string]interface{}{
-			"upsert_counter": 4,
-		},
-	)
-	counterInc := clause.Assignments(
-		map[string]interface{}{
-			// "upsert_counter": gorm.Expr("GREATEST(upsert_counter, VALUES(upsert_counter))"),
-			"upsert_counter": gorm.Expr("upsert_counter+4"),
-		},
-	)
-	_, _ = counterSet, counterInc
-
-	onDuplicateName := db.Clauses(
-		clause.OnConflict{
-			Columns:   []clause.Column{{Name: "name"}},
-			DoUpdates: counterInc,
-			// UpdateAll: true, // prevents DoUpdates from execution
-		},
-	)
-	onDuplicateID := db.Clauses(
-		clause.OnConflict{
-			Columns:   []clause.Column{{Name: "id"}},
-			DoUpdates: counterInc,
-			// UpdateAll: true, // prevents DoUpdates from execution
-		},
-	)
-
-	// DoUpdates is not executed - despite conflict
-	onConflictUpdateAll := db.Clauses(
-		clause.OnConflict{
-			UpdateAll: true,
-			DoUpdates: counterInc,
-		},
-	)
-	_ = onConflictUpdateAll
-
 	//
 	//
 	cats := []Category{
@@ -68,8 +31,7 @@ func TestData() {
 		{Name: "Snacking"},
 	}
 	for _, cat := range cats {
-
-		res := onDuplicateName.Create(&cat)
+		res := onConflictUpdateAll.Create(&cat)
 		LogRes(res)
 	}
 
@@ -79,9 +41,6 @@ func TestData() {
 	//
 	entries := []Entry{
 
-		// {
-		// 	Content: "Toothpaste without Cat",
-		// },
 		{
 			Content:  "Toothpaste with value of cat - existing",
 			Category: Category{Name: "Groceries"},
@@ -94,20 +53,19 @@ func TestData() {
 		//
 		{
 			Content:    "Toothpaste",
-			CategoryID: CategoriesByName("Groceries"),
+			CategoryID: CategoryIDByName("Groceries"),
 		},
 		{
 			Content:    "WC Cleanser",
-			CategoryID: CategoriesByName("Groceries"),
+			CategoryID: CategoryIDByName("Groceries"),
 		},
 		{
 			Content:    "Coffee",
-			CategoryID: CategoriesByName("Snacking"),
+			CategoryID: CategoryIDByName("Snacking"),
 		},
 		{
 			Content:    "Cookie",
-			CategoryID: CategoriesByName("Snacking"),
-			TagsU:      []TagU{{Name: "Indulgence"}, {Name: "Curiosity"}, {Name: "Reward"}, {Name: "Craving"}},
+			CategoryID: CategoryIDByName("Snacking"),
 		},
 
 		// fails
@@ -120,21 +78,13 @@ func TestData() {
 		// xxx
 		{
 			Content:    "Apple Pie 13",
-			CategoryID: CategoriesByName("Snacking"),
+			CategoryID: CategoryIDByName("Snacking"),
 			Model:      gorm.Model{ID: uint(13)},
-			TagsU: []TagU{
-				{Model: gorm.Model{ID: uint(131)}, Name: "131"},
-				{Model: gorm.Model{ID: uint(132)}, Name: "132"},
-			},
 		},
 		{
 			Content:    "Apple Pie 14",
-			CategoryID: CategoriesByName("Snacking"),
+			CategoryID: CategoryIDByName("Snacking"),
 			Model:      gorm.Model{ID: uint(14)},
-			TagsU: []TagU{
-				{Model: gorm.Model{ID: uint(141)}, Name: "141"},
-				{Model: gorm.Model{ID: uint(142)}, Name: "142"},
-			},
 		},
 	}
 
@@ -143,21 +93,22 @@ func TestData() {
 			entry.Model = gorm.Model{ID: uint(idx + 1)}
 		}
 		// res := db.Create(&entry)
-		res := onDuplicateID.Create(&entry)
+		// res := onDuplicateID.Create(&entry)
+		res := onConflictUpdateAll.Create(&entry)
 		LogRes(res)
 		log.Printf("finished entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
 	}
 
 	//
 	if false {
-		// retrives no categories
+		// retrieves no categories
 		entries := []Entry{}
 		res := db.Find(&entries)
 		LogRes(res)
 		dbg.Dump(entries[:5])
 	}
 	if false {
-		// works
+		// works - "Category" is the struct field name
 		entries := []Entry{}
 		res := db.Preload("Category").Find(&entries)
 		LogRes(res)
@@ -172,9 +123,20 @@ func TestData() {
 		// dbg.Dump(entries[5:])
 		dbg.Dump(entries)
 
-		for _, entry := range entries {
-			err := db.Model(&entry).Association("Tags").Append([]Tag{{Name: "Tag1"}, {Name: "Tag2"}})
+		for idx, entry := range entries {
+			tags := []Tag{
+				{Name: "Tag1", CategoryID: idx},
+				{Name: "Tag2"},
+			}
+			err := db.Model(&entry).Association("Tags").Append(tags)
+			// no error on composite index uniqueness failure
 			LogErr(err)
+			log.Printf("entry %2v: tags added to %v \n", idx+1, entry.Content)
+		}
+
+		for idx, entry := range entries {
+			cnt := db.Model(&entry).Association("Tags").Count()
+			log.Printf("entry %2v: %v has  %v tags\n", idx+1, entry.Content, cnt)
 		}
 	}
 

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime/metrics"
+	"sort"
 	"strings"
 
 	"github.com/pbberlin/go-pwa/pkg/db"
@@ -69,4 +71,38 @@ func layoutTemplateForJS(w http.ResponseWriter, r *http.Request) {
 	sc.Title = "${headerTitle}"
 	sc.Desc = "${headerDesc}"
 	sc.render(w, cnt)
+}
+
+var mtrcs = map[string]string{
+	"gcPauses":       "/gc/pauses:seconds",
+	"schedLatencies": "/sched/latencies:seconds",
+	"memoryHeapFree": "/memory/classes/heap/free:bytes",
+}
+
+// golangMetrics uses new 2021 package metrics
+func golangMetrics(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/plain")
+
+	srt := make([]string, 0, len(mtrcs))
+	for key := range mtrcs {
+		srt = append(srt, key)
+	}
+	sort.Strings(srt)
+
+	for _, key := range srt {
+		val := mtrcs[key]
+
+		// create smpl and read it
+		smpl := make([]metrics.Sample, 1)
+		smpl[0].Name = val
+		metrics.Read(smpl)
+
+		if smpl[0].Value.Kind() == metrics.KindBad {
+			fmt.Fprintf(w, "\tmetric %q unsupported\n", val)
+		}
+
+		// uintVal := smpl[0].Value.Uint64()
+		fmt.Fprintf(w, "%-24v as %T: %d\n", key, smpl[0].Value, smpl[0].Value)
+	}
 }

@@ -25,5 +25,5 @@ mv      ./cmd/server/server.exe  ./server.exe
 ./server.exe
 
 # echo "success"
-# sleep 10
+sleep 30
 

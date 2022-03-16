@@ -17,7 +17,7 @@ type Categories []Category
 
 var categories = []Category{} // if len(categories) > 20, switch to map
 
-func CategoriesByName(s string) int {
+func CategoryIDByName(s string) int {
 
 	// retrieving all objects
 	// SELECT * FROM users;
@@ -35,4 +35,13 @@ func CategoriesByName(s string) int {
 	}
 	return 0
 
+}
+
+func (c *Category) BeforeCreate(tx *gorm.DB) (err error) {
+	c.UpsertCounter = 10
+	return nil
+}
+func (c *Category) BeforeUpdate(tx *gorm.DB) (err error) {
+	c.UpsertCounter++
+	return nil
 }

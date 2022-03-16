@@ -27,14 +27,15 @@ func LogRes(res *gorm.DB) {
 	log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
 	log.Printf("%2v affected rows", res.RowsAffected)
 	// log.Printf("statement \n %v", res.Statement)
+	res.Error = nil
 }
 
 func LogErr(err error) {
 	if err != nil {
 		errStr := fmt.Sprintf("  %v", err)
+		log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
 		log.Print(string(colorRed), errStr, err, string(colorReset))
 	}
-	log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
 }
 
 var db *gorm.DB
@@ -62,9 +63,15 @@ func Initialize() {
 		panic("failed to connect database")
 	}
 
+	// activate EntryTag as custom join table
+	err = db.SetupJoinTable(&Entry{}, "Tags", &EntryTag{})
+	LogErr(err)
+
 	db.AutoMigrate(&Category{})
-	db.AutoMigrate(&TagU{})
+	db.AutoMigrate(&CreditCard{})
 	db.AutoMigrate(&Tag{})
 	db.AutoMigrate(&Entry{})
+
+	initClauses()
 
 }

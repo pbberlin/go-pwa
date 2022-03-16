@@ -12,13 +12,9 @@ type Tag struct { // multiple uses
 	CategoryID int    `gorm:"index:idx_namecat,unique"` // unique composite index
 }
 
-type TagShortJSON struct {
-	Name string
-}
-
 func (e Tag) MarshalJSON() ([]byte, error) {
 
-	et := TagUShortJSON{}
+	et := struct{ Name string }{}
 	et.Name = e.Name
 
 	j, err := json.Marshal(et)

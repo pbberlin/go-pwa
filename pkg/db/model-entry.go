@@ -9,22 +9,26 @@ import (
 	"gorm.io/gorm"
 )
 
+// Entry into the app
 type Entry struct {
 	gorm.Model
 	Content       string
 	UpsertCounter int
 
-	// Has one => primary key and object
+	// has one => primary key and object
 	// gorm.io/docs/has_one.html
+	// only a single category; category is not unique
 	CategoryID int
 	Category   Category
 
-	TagsU []TagU // multiple tags - unique to this entry
+	// multiple tags - unique to this entry - for instance also addresses
+	CreditCards []CreditCard
 
-	Tags []Tag `gorm:"many2many:entry_tag;"` // multiple tags - reusable to other entries
+	Tags []Tag `gorm:"many2many:entry_tags;"` // multiple tags - reusable to other entries
 }
 
-// cutomized M to N table
+// EntryTag for cutomized M to N table
+//   just by name
 type EntryTag struct {
 	EntryID   int `gorm:"primaryKey"`
 	TagID     int `gorm:"primaryKey"`
@@ -33,29 +37,22 @@ type EntryTag struct {
 	DeletedAt gorm.DeletedAt
 }
 
-func init() {
-	// activate EntryTag as custom join table
-	err := db.SetupJoinTable(&Entry{}, "Tags", &EntryTag{})
-	LogErr(err)
-}
-
-type EntryShortJSON struct {
-	Content   string
-	Category  string
-	TagUNames string
-	TagNames  string
-}
-
+// MarshalJSON only essential data
 func (e Entry) MarshalJSON() ([]byte, error) {
 
-	et := EntryShortJSON{}
+	et := struct {
+		Content   string
+		Category  string
+		TagUNames string
+		TagNames  string
+	}{}
 	et.Content = fmt.Sprint(e.ID, ":  ", e.Content)
 	et.Category = fmt.Sprint(e.Category.ID, ":  ", e.Category.Name)
 
 	nms := ""
-	for _, tg := range e.TagsU {
-		nms += tg.Name + ", "
-	}
+	// for _, tg := range e.TagsU {
+	// 	nms += tg.Name + ", "
+	// }
 	et.TagUNames = nms
 
 	j, err := json.Marshal(et)
@@ -75,4 +72,13 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 
 	ret := []byte(strings.Join(js2, "\n"))
 	return ret, nil
+}
+
+func (e *Entry) BeforeCreate(tx *gorm.DB) (err error) {
+	e.UpsertCounter = 10
+	return nil
+}
+func (e *Entry) BeforeUpdate(tx *gorm.DB) (err error) {
+	e.UpsertCounter++
+	return nil
 }

@@ -58,6 +58,7 @@ func main() {
 
 	mux.HandleFunc("/hello", plain)
 	mux.HandleFunc("/save-json", saveJson)
+	mux.HandleFunc("/golang-metrics", golangMetrics)
 	mux.HandleFunc("/db-test-data", DBTestData)
 
 	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
