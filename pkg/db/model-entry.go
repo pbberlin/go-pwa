@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -28,7 +29,7 @@ type Entry struct {
 }
 
 // EntryTag for cutomized M to N table
-//   just by name
+//   established via SetupJoinTable()
 type EntryTag struct {
 	EntryID   int `gorm:"primaryKey"`
 	TagID     int `gorm:"primaryKey"`
@@ -41,19 +42,27 @@ type EntryTag struct {
 func (e Entry) MarshalJSON() ([]byte, error) {
 
 	et := struct {
-		Content   string
-		Category  string
-		TagUNames string
-		TagNames  string
+		Cnt  string
+		Cat  string
+		CCs  string
+		Tags string
 	}{}
-	et.Content = fmt.Sprint(e.ID, ":  ", e.Content)
-	et.Category = fmt.Sprint(e.Category.ID, ":  ", e.Category.Name)
+	et.Cnt = fmt.Sprintf("ID%v: %v", e.ID, e.Content)
+	if e.Category.ID > 0 {
+		et.Cat = fmt.Sprintf("ID%v: %v", e.Category.ID, e.Category.Name)
+	}
 
-	nms := ""
-	// for _, tg := range e.TagsU {
-	// 	nms += tg.Name + ", "
-	// }
-	et.TagUNames = nms
+	ccs := ""
+	for _, cc := range e.CreditCards {
+		ccs = fmt.Sprintf("%v;   ID%v-%v-%v", ccs, cc.ID, cc.Issuer, cc.Number)
+	}
+	et.CCs = ccs
+
+	tgs := ""
+	for _, tg := range e.Tags {
+		tgs = fmt.Sprintf("%v;   ID%v-%v-%v", tgs, tg.ID, tg.Name, tg.CategoryID)
+	}
+	et.Tags = tgs
 
 	j, err := json.Marshal(et)
 	if err != nil {
@@ -63,10 +72,23 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 	js := strings.Split(string(j), "\n")
 	js2 := []string{}
 	for _, row := range js {
-		if strings.Contains(row, `"CategoryName": ""`) {
-			continue
+		if strings.Contains(row, `"Cat":""`) {
+			row = strings.ReplaceAll(row, `"Cat":""`, "")
 		}
-		// log.Print(row)
+		if strings.Contains(row, `"CCs":""`) {
+			row = strings.ReplaceAll(row, `"CCs":""`, "")
+			// continue
+		}
+		if strings.Contains(row, `"Tags":""`) {
+			row = strings.ReplaceAll(row, `"Tags":""`, "")
+			// continue
+		}
+		row = strings.ReplaceAll(row, ",,,", ",")
+		row = strings.ReplaceAll(row, ",,", ",")
+		row = strings.ReplaceAll(row, ",}", "}")
+		if false {
+			log.Printf("\trow\t%v", row)
+		}
 		js2 = append(js2, row)
 	}
 
@@ -75,7 +97,7 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 }
 
 func (e *Entry) BeforeCreate(tx *gorm.DB) (err error) {
-	e.UpsertCounter = 10
+	e.UpsertCounter += 10
 	return nil
 }
 func (e *Entry) BeforeUpdate(tx *gorm.DB) (err error) {

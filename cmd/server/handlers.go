@@ -55,6 +55,9 @@ func plain(w http.ResponseWriter, r *http.Request) {
 func DBTestData(w http.ResponseWriter, r *http.Request) {
 	db.TestData()
 }
+func DBClose(w http.ResponseWriter, r *http.Request) {
+	db.Close()
+}
 
 func saveJson(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

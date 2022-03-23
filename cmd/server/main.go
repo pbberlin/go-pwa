@@ -46,7 +46,10 @@ func main() {
 	var err error
 
 	cfg.Headless(cfg.Load, "/config/load")
-	cfg.Headless(static.PrepareStatic, "/prepare-static")
+	if false {
+		// omit while developing backend db
+		cfg.Headless(static.PrepareStatic, "/prepare-static")
+	}
 
 	db.Initialize()
 
@@ -60,6 +63,7 @@ func main() {
 	mux.HandleFunc("/save-json", saveJson)
 	mux.HandleFunc("/golang-metrics", golangMetrics)
 	mux.HandleFunc("/db-test-data", DBTestData)
+	mux.HandleFunc("/db-close", DBClose)
 
 	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
 		cfg.Load(w, r)

@@ -8,8 +8,8 @@ import (
 
 type Tag struct { // multiple uses
 	gorm.Model
-	Name       string `gorm:"index:idx_namecat,unique"` // unique composite index
-	CategoryID int    `gorm:"index:idx_namecat,unique"` // unique composite index
+	Name       string `gorm:"index:idx_tag_namecat,unique"` // unique composite index
+	CategoryID int    `gorm:"index:idx_tag_namecat,unique"` // unique composite index
 }
 
 func (e Tag) MarshalJSON() ([]byte, error) {

@@ -13,6 +13,9 @@ import (
 
 func TestData() {
 
+	// normally only called once in main() after config load
+	Initialize()
+
 	db := Get()
 
 	defer func() {
@@ -31,7 +34,7 @@ func TestData() {
 		{Name: "Snacking"},
 	}
 	for _, cat := range cats {
-		res := onConflictUpdateAll.Create(&cat)
+		res := onDuplicateName.Create(&cat)
 		LogRes(res)
 	}
 
@@ -48,12 +51,19 @@ func TestData() {
 		{
 			Content:  "Toothpaste with value of cat - new",
 			Category: Category{Name: fmt.Sprintf("Groceries-%v", time.Now().Unix())},
+			CreditCards: []CreditCard{
+				{Issuer: "VISA", Number: 232233339090},
+				{Issuer: "AMEX", Number: 909090909090},
+			},
 		},
 
 		//
 		{
 			Content:    "Toothpaste",
 			CategoryID: CategoryIDByName("Groceries"),
+			CreditCards: []CreditCard{
+				{Issuer: "VISA", Number: 232233339090},
+			},
 		},
 		{
 			Content:    "WC Cleanser",
@@ -68,14 +78,6 @@ func TestData() {
 			CategoryID: CategoryIDByName("Snacking"),
 		},
 
-		// fails
-		/* 		{
-		   			Content:    "Apple Pie",
-		   			CategoryID: CategoriesByName("Snacking"),
-		   			Tags:       []Tag{{Name: "Indulgence"}, {Name: "Reward"}, {Name: "Craving"}},
-		   		},
-		*/
-		// xxx
 		{
 			Content:    "Apple Pie 13",
 			CategoryID: CategoryIDByName("Snacking"),
@@ -86,6 +88,18 @@ func TestData() {
 			CategoryID: CategoryIDByName("Snacking"),
 			Model:      gorm.Model{ID: uint(14)},
 		},
+
+		{
+			Content:    "Apple Pie 15",
+			CategoryID: CategoryIDByName("Snacking"),
+			Tags: []Tag{
+				{Name: "Indulgence"},
+				{Name: "Reward"},
+				{Name: "Craving"},
+			},
+		},
+
+		// xxx
 	}
 
 	for idx, entry := range entries {
@@ -93,26 +107,21 @@ func TestData() {
 			entry.Model = gorm.Model{ID: uint(idx + 1)}
 		}
 		// res := db.Create(&entry)
-		// res := onDuplicateID.Create(&entry)
-		res := onConflictUpdateAll.Create(&entry)
+
+		res := onDuplicateID.Create(&entry)
 		LogRes(res)
-		log.Printf("finished entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
+
+		// entry now contains IDs of associations
+		log.Printf("upserted entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
 	}
 
 	//
 	if false {
-		// retrieves no categories
+		// retrieves no categories, we need db preload
 		entries := []Entry{}
 		res := db.Find(&entries)
 		LogRes(res)
 		dbg.Dump(entries[:5])
-	}
-	if false {
-		// works - "Category" is the struct field name
-		entries := []Entry{}
-		res := db.Preload("Category").Find(&entries)
-		LogRes(res)
-		dbg.Dump(entries[:4])
 	}
 
 	{
@@ -124,14 +133,25 @@ func TestData() {
 		dbg.Dump(entries)
 
 		for idx, entry := range entries {
-			tags := []Tag{
-				{Name: "Tag1", CategoryID: idx},
-				{Name: "Tag2"},
+
+			if true {
+				tags := []Tag{
+					{Name: "Tag1", CategoryID: idx},
+					{Name: "Tag2"},
+				}
+
+				err := db.Model(&entry).Association("Tags").Append(tags)
+				// no error on composite index uniqueness failure
+				LogErr(err)
+				log.Printf("entry %2v: tags added to %v \n", idx+1, entry.Content)
 			}
-			err := db.Model(&entry).Association("Tags").Append(tags)
-			// no error on composite index uniqueness failure
-			LogErr(err)
-			log.Printf("entry %2v: tags added to %v \n", idx+1, entry.Content)
+
+			entry.UpsertCounter++
+			// res := onDuplicateID.Create(&entry)
+			// res := db.UpdateColumn("UpsertCounter", entry.UpsertCounter)
+			res := db.Save(&entry)
+			LogRes(res)
+
 		}
 
 		for idx, entry := range entries {
@@ -140,4 +160,5 @@ func TestData() {
 		}
 	}
 
+	Close()
 }

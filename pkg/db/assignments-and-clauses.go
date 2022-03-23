@@ -45,9 +45,9 @@ func initClauses() {
 		},
 	)
 
-	// DoUpdates is not executed - despite conflict
 	onConflictUpdateAll = db.Clauses(
 		clause.OnConflict{
+			// REQUIRED Columns
 			UpdateAll: true,
 			// DoUpdates: counterInc,
 		},

@@ -27,7 +27,7 @@ func LogRes(res *gorm.DB) {
 	log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
 	log.Printf("%2v affected rows", res.RowsAffected)
 	// log.Printf("statement \n %v", res.Statement)
-	res.Error = nil
+	// res.Error = nil
 }
 
 func LogErr(err error) {
@@ -44,7 +44,14 @@ func Get() *gorm.DB {
 	return db
 }
 
+// Initialize should be called on application start after config load
 func Initialize() {
+
+	if db != nil {
+		// making sure, gorm.Open is called only once;
+		// to close an existing db, use Close()
+		return
+	}
 
 	dbCfg := &gorm.Config{
 		CreateBatchSize: 10,
@@ -74,4 +81,23 @@ func Initialize() {
 
 	initClauses()
 
+}
+
+// Close releases the database; as long as gorm.Open() was called only once on the db
+func Close() {
+	if db != nil {
+		db.Commit()
+		sqlDB, err := db.DB() // underlying golang sql.DB
+		if err != nil {
+			log.Printf("failed to get sql.DB from gorm.DB: %v", err)
+			return
+		}
+		err = sqlDB.Close()
+		if err != nil {
+			log.Printf("cannot close sql.DB %v", err)
+		} else {
+			log.Printf("sql.DB closing...")
+			db = nil
+		}
+	}
 }
