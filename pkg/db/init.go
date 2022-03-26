@@ -22,9 +22,9 @@ func LogRes(res *gorm.DB) {
 	// log.Printf("%2v stmt", res.Statement.SQL.String())
 	if res.Error != nil {
 		errStr := fmt.Sprintf("  %v", res.Error)
-		log.Print(string(colorRed), errStr, res.Error, string(colorReset))
+		log.Print(colorRed, errStr, res.Error, colorReset)
 	}
-	log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
+	log.Print(colorCyan, dbg.CallingLine(0), colorReset)
 	log.Printf("%2v affected rows", res.RowsAffected)
 	// log.Printf("statement \n %v", res.Statement)
 	// res.Error = nil
@@ -33,8 +33,8 @@ func LogRes(res *gorm.DB) {
 func LogErr(err error) {
 	if err != nil {
 		errStr := fmt.Sprintf("  %v", err)
-		log.Print(string(colorCyan), dbg.CallingLine(0), string(colorReset))
-		log.Print(string(colorRed), errStr, err, string(colorReset))
+		log.Print(colorCyan, dbg.CallingLine(0), colorReset)
+		log.Print(colorRed, errStr, err, colorReset)
 	}
 }
 
@@ -42,6 +42,13 @@ var db *gorm.DB
 
 func Get() *gorm.DB {
 	return db
+}
+
+func ToInfo() {
+	db.Config.Logger = logger.Default.LogMode(logger.Info)
+}
+func ToWarn() {
+	db.Config.Logger = logger.Default.LogMode(logger.Warn)
 }
 
 // Initialize should be called on application start after config load

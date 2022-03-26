@@ -96,3 +96,15 @@ Todo:
 * Make the config loadable via JSON
 * Javascript templating is done in a highly inappropriate way; cannot get idiomatic way to work
 * Markdown with some pre-processing is missing
+
+## Gorm
+
+* `save` first updates by primary key. Then selects whether the record exists. And if not, inserts.
+
+* `create` inserts. On conflict adds DB specific jargon for upsert/merge. 
+
+* Caveat: uniqueness indexes should include the deletion date column
+
+### Relations / Associations
+
+* 

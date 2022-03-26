@@ -1,6 +1,9 @@
 package db
 
 import (
+	"fmt"
+	"log"
+
 	"gorm.io/gorm"
 )
 
@@ -17,13 +20,18 @@ type Categories []Category
 
 var categories = []Category{} // if len(categories) > 20, switch to map
 
-func CategoryIDByName(s string) int {
+// ByName returns by name
+func (c Category) IDByName(s string) int {
 
-	// retrieving all objects
-	// SELECT * FROM users;
+	// SELECT * FROM categories;
 	if len(categories) < 1 {
 		res := db.Find(&categories)
-		LogRes(res)
+		if res.Error != nil {
+			errStr := fmt.Sprintf("  %v", res.Error)
+			log.Print(colorRed, errStr, res.Error, colorReset)
+		} else {
+			log.Printf("%2v categories cached", res.RowsAffected)
+		}
 		// dbg.Dump(categories[:2])
 		// dbg.Dump(categories[len(categories)-2:])
 	}
@@ -34,7 +42,6 @@ func CategoryIDByName(s string) int {
 		}
 	}
 	return 0
-
 }
 
 func (c *Category) BeforeCreate(tx *gorm.DB) (err error) {

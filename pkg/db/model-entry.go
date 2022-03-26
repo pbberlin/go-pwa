@@ -13,7 +13,9 @@ import (
 // Entry into the app
 type Entry struct {
 	gorm.Model
-	Content       string
+	Name          string
+	Desc          string
+	Comment       string
 	UpsertCounter int
 
 	// has one => primary key and object
@@ -38,6 +40,16 @@ type EntryTag struct {
 	DeletedAt gorm.DeletedAt
 }
 
+// ByName returns by name
+func (e Entry) ByName(s string) (Entry, error) {
+	for i := 0; i < len(entries); i++ {
+		if entries[i].Name == s {
+			return entries[i], nil
+		}
+	}
+	return Entry{}, fmt.Errorf("Entry %q not found", s)
+}
+
 // MarshalJSON only essential data
 func (e Entry) MarshalJSON() ([]byte, error) {
 
@@ -47,7 +59,7 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 		CCs  string
 		Tags string
 	}{}
-	et.Cnt = fmt.Sprintf("ID%v: %v", e.ID, e.Content)
+	et.Cnt = fmt.Sprintf("ID%v: %v - %v", e.ID, e.Name, e.Comment)
 	if e.Category.ID > 0 {
 		et.Cat = fmt.Sprintf("ID%v: %v", e.Category.ID, e.Category.Name)
 	}

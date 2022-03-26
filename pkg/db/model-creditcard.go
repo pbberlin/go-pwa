@@ -8,9 +8,9 @@ import (
 
 type CreditCard struct { // tag unique - belongs to one entry - no multiple uses
 	gorm.Model
-	Issuer  string `gorm:"index:idx_creditcard,unique"` // unique composite index
-	Number  uint   `gorm:"index:idx_creditcard,unique"` // unique composite index
-	EntryID uint   `gorm:"index:idx_creditcard,unique"` // unique composite index
+	Issuer  string `gorm:"index:idx_credit_card,unique"` // unique composite index
+	Number  uint   `gorm:"index:idx_credit_card,unique"` // unique composite index
+	EntryID uint   `gorm:"index:idx_credit_card,unique"` // unique composite index
 }
 
 // MarshalJSON only essential data
