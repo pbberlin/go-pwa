@@ -8,7 +8,7 @@ import (
 )
 
 type Category struct {
-	gorm.Model
+	ID            uint   `gorm:"primarykey"`
 	Name          string `gorm:"uniqueIndex"`
 	UpsertCounter int
 

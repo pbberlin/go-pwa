@@ -5,7 +5,6 @@ import (
 
 	"github.com/pbberlin/dbg"
 
-	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -30,11 +29,13 @@ func TestData() {
 		LogRes(res)
 	}
 
+	setCompoundLiterals()
+
 	log.Printf("------create-------")
 
-	for idx, entry := range entries {
-		if entry.Model.ID < 1 {
-			entry.Model = gorm.Model{ID: uint(idx + 1)}
+	for idx, entry := range entriesLit {
+		if entry.ID < 1 {
+			entry.ID = uint(idx + 1)
 		} else {
 			log.Printf("id %v for %v", entry.ID, entry.Name)
 		}
@@ -44,89 +45,35 @@ func TestData() {
 		// log.Printf("upserted entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
 	}
 
-	log.Printf("------save----------")
-
-	ToInfo()
-	{
-		e, err := Entry{}.ByName("Apple Pie")
-		if err != nil {
-			log.Print(err)
-		} else {
-			e.Name += " saved"
-			res := db.Save(e)
-			LogRes(res)
-		}
-	}
-	{
-		saved := Entry{
-			Name:    "By Save 1",
-			Comment: "cat by ID",
-		}
-		saved.CategoryID = Category{}.IDByName("Food")
-		res := db.Save(&saved)
-		LogRes(res)
-	}
-	{
-		saved := Entry{
-			Name:    "By Save 2",
-			Comment: "cat, ccs, tags by Val",
-		}
-		saved.Category = Category{Name: "Food"}
-		saved.CreditCards = []CreditCard{
-			{Issuer: "VISA", Number: 232233339090},
-			{Issuer: "AMEX", Number: 909090909090},
-		}
-		saved.Tags = []Tag{
-			{Name: "Indulgence"},
-			{Name: "Reward"},
-			{Name: "Craving"},
-		}
-
-		res := db.Save(&saved)
-		LogRes(res)
-	}
-	ToWarn()
-
 	//
-	if false {
-		// retrieves no categories, we need db preload
-		entries := []Entry{}
-		res := db.Find(&entries)
-		LogRes(res)
-		dbg.Dump(entries[:5])
-	}
-
+	log.Printf("------adding tags----------")
 	{
-		entries := []Entry{}
-		res := db.Preload(clause.Associations).Find(&entries)
+		res := db.Preload(clause.Associations).Find(&entriesLit)
 		LogRes(res)
-		// dbg.Dump(entries[:4])
-		// dbg.Dump(entries[5:])
-		dbg.Dump(entries)
 
-		for idx, entry := range entries {
+		for _, id := range []uint{13, 14} {
 
-			if true {
-				tags := []Tag{
-					{Name: "Tag1", CategoryID: idx},
-					{Name: "Tag2"},
-				}
-
-				err := db.Model(&entry).Association("Tags").Append(tags)
-				// no error on composite index uniqueness failure
-				LogErr(err)
-				log.Printf("entry %2v: tags added to %v \n", idx+1, entry.Name)
+			e, err := Entry{}.ByID(id)
+			if err != nil {
+				log.Print(err)
+				continue
 			}
 
-			entry.UpsertCounter++
-			// res := onDuplicateID.Create(&entry)
-			// res := db.UpdateColumn("UpsertCounter", entry.UpsertCounter)
-			res := db.Save(&entry)
+			tags := []Tag{
+				{Name: "Tag1"},                 // only one is created because uniqueness
+				{Name: "Tag2", CategoryID: id}, // each is created
+			}
+
+			err = db.Model(&e).Association("Tags").Append(tags)
+			// no error on composite index uniqueness failure
+			LogErr(err)
+			log.Printf("entry %2v: tags added to %v \n", id, e.Name)
+
+			e.UpsertCounter++
+			// res := onDuplicateID.Create(&e)
+			// res := db.UpdateColumn("UpsertCounter", e.UpsertCounter)
+			res := db.Save(&e)
 			LogRes(res)
-
-			if idx > 2 {
-				break
-			}
 
 		}
 
@@ -134,7 +81,70 @@ func TestData() {
 		// 	cnt := db.Model(&entry).Association("Tags").Count()
 		// 	log.Printf("entry %2v: %v has  %v tags\n", idx+1, entry.Content, cnt)
 		// }
+
 	}
+
+	//
+	log.Printf("------save----------")
+	{
+		ToInfo()
+		e, err := Entry{}.ByName("Apple Pie")
+		if err != nil {
+			log.Print(err)
+		} else {
+			e.Comment += " saved"
+			res := db.Save(&e)
+			LogRes(res)
+		}
+		// ToWarn()
+	}
+	{
+		e := Entry{
+			ID:         uint(16),
+			Name:       "By Save 1",
+			Comment:    "id 16, cat by ID",
+			CategoryID: Category{}.IDByName("Food"),
+		}
+		res := db.Save(&e)
+		LogRes(res)
+	}
+	{
+		// ToInfo()
+		e := Entry{
+			Name:       "By Save 2",
+			Comment:    "cat, ccs, tags by Val",
+			CategoryID: Category{}.IDByName("Food"),
+		}
+		e.CreditCards = []CreditCard{
+			{Issuer: "VISA", Number: 232233339090},
+			{Issuer: "AMEX", Number: 909090909090},
+		}
+		e.Tags = []Tag{
+			{Name: "Indulgence"},
+			{Name: "Reward"},
+			{Name: "Craving"},
+			{Name: "Topor"},
+		}
+
+		res := db.Save(&e)
+		LogRes(res)
+		ToWarn()
+	}
+
+	//
+	if false {
+		// no categories, need db.Preload
+		entries := []Entry{}
+		res := db.Find(&entries)
+		LogRes(res)
+		dbg.Dump(entries[:5])
+	}
+
+	res := db.Preload(clause.Associations).Find(&entriesLit)
+	LogRes(res)
+	// dbg.Dump(entries[:4])
+	// dbg.Dump(entries[5:])
+	dbg.Dump(entriesLit)
 
 	Close()
 }

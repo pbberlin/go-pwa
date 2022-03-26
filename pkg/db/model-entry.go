@@ -12,7 +12,9 @@ import (
 
 // Entry into the app
 type Entry struct {
-	gorm.Model
+	// gorm.Model
+	ID uint `gorm:"primarykey"`
+
 	Name          string
 	Desc          string
 	Comment       string
@@ -33,21 +35,32 @@ type Entry struct {
 // EntryTag for cutomized M to N table
 //   established via SetupJoinTable()
 type EntryTag struct {
-	EntryID   int `gorm:"primaryKey"`
-	TagID     int `gorm:"primaryKey"`
-	Type      string
-	CreatedAt time.Time
-	DeletedAt gorm.DeletedAt
+	EntryID uint `gorm:"primaryKey"`
+	TagID   uint `gorm:"primaryKey"`
+	Type    string
+	// CreatedAt time.Time
+	UpdatedAt time.Time
+	// DeletedAt gorm.DeletedAt
 }
 
 // ByName returns by name
 func (e Entry) ByName(s string) (Entry, error) {
-	for i := 0; i < len(entries); i++ {
-		if entries[i].Name == s {
-			return entries[i], nil
+	for i := 0; i < len(entriesLit); i++ {
+		if entriesLit[i].Name == s {
+			return entriesLit[i], nil
 		}
 	}
 	return Entry{}, fmt.Errorf("Entry %q not found", s)
+}
+
+// ByID returns by ID
+func (e Entry) ByID(id uint) (Entry, error) {
+	for i := 0; i < len(entriesLit); i++ {
+		if entriesLit[i].ID == id {
+			return entriesLit[i], nil
+		}
+	}
+	return Entry{}, fmt.Errorf("Entry %q not found", id)
 }
 
 // MarshalJSON only essential data
@@ -59,7 +72,10 @@ func (e Entry) MarshalJSON() ([]byte, error) {
 		CCs  string
 		Tags string
 	}{}
-	et.Cnt = fmt.Sprintf("ID%v: %v - %v", e.ID, e.Name, e.Comment)
+	et.Cnt = fmt.Sprintf("ID%v: %v", e.ID, e.Name)
+	if e.Comment != "" {
+		et.Cnt = fmt.Sprintf("%v - %v", et.Cnt, e.Comment)
+	}
 	if e.Category.ID > 0 {
 		et.Cat = fmt.Sprintf("ID%v: %v", e.Category.ID, e.Category.Name)
 	}

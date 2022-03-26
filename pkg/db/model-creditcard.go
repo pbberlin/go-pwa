@@ -2,12 +2,12 @@ package db
 
 import (
 	"encoding/json"
-
-	"gorm.io/gorm"
 )
 
 type CreditCard struct { // tag unique - belongs to one entry - no multiple uses
-	gorm.Model
+	// gorm.Model
+	ID uint `gorm:"primarykey"`
+
 	Issuer  string `gorm:"index:idx_credit_card,unique"` // unique composite index
 	Number  uint   `gorm:"index:idx_credit_card,unique"` // unique composite index
 	EntryID uint   `gorm:"index:idx_credit_card,unique"` // unique composite index

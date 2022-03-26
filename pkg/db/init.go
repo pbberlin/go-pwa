@@ -24,8 +24,12 @@ func LogRes(res *gorm.DB) {
 		errStr := fmt.Sprintf("  %v", res.Error)
 		log.Print(colorRed, errStr, res.Error, colorReset)
 	}
-	log.Print(colorCyan, dbg.CallingLine(0), colorReset)
-	log.Printf("%2v affected rows", res.RowsAffected)
+
+	if res.Error != nil || res.RowsAffected != 1 {
+		log.Print(colorCyan, dbg.CallingLine(0), colorReset)
+		log.Printf("%2v affected rows", res.RowsAffected)
+	}
+
 	// log.Printf("statement \n %v", res.Statement)
 	// res.Error = nil
 }

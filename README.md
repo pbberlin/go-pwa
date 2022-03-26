@@ -99,11 +99,31 @@ Todo:
 
 ## Gorm
 
-* `save` first updates by primary key. Then selects whether the record exists. And if not, inserts.
+### Requirements
+
+* Upsert
+
+* Associations 1:1, 1:n, m:n
+
+* Compound unique constraints
+
+### Peculiarities
+
+* Uniqueness indexes should include the deletion date column;  
+  fields of gorm.Model must explicitly embedded
+
+* gorm.Model incurs a lot of noise
 
 * `create` inserts. On conflict adds DB specific jargon for upsert/merge. 
 
-* Caveat: uniqueness indexes should include the deletion date column
+* `save` first updates by primary key.  
+  If no rows are affected, a `select` is issued. If the record does not exist, it gets inserted.
+
+* `create` and `save` do not associate with existing unique assocations.  
+  Instead they fail at creating the same association,  
+  then they create an m:n record with the association ID 0;
+  and without giving any error.
+
 
 ### Relations / Associations
 
