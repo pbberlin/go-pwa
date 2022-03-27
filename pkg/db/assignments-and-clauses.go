@@ -7,8 +7,8 @@ import (
 
 var counterSet clause.Set
 var counterInc clause.Set
-var onDuplicateName *gorm.DB
-var onDuplicateID *gorm.DB
+var onDuplicateNameUpdate *gorm.DB
+var onDuplicateIDUpdate *gorm.DB
 var onConflictUpdateAll *gorm.DB
 
 func initClauses() {
@@ -30,14 +30,14 @@ func initClauses() {
 
 	//
 	// clauses conflict
-	onDuplicateName = db.Clauses(
+	onDuplicateNameUpdate = db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
 			UpdateAll: true, // prevents DoUpdates from execution
 			// DoUpdates: counterInc,
 		},
 	)
-	onDuplicateID = db.Clauses(
+	onDuplicateIDUpdate = db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "id"}},
 			UpdateAll: true, // prevents DoUpdates from execution

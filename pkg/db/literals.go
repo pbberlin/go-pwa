@@ -17,6 +17,9 @@ var entriesLit []Entry
 // required db running, thus cannot be  init()
 func setCompoundLiterals() {
 
+	var ep *Category // this does not suffice to call a method
+	ep = &Category{}
+
 	//
 	entriesLit = []Entry{
 
@@ -34,14 +37,14 @@ func setCompoundLiterals() {
 		{
 			Name:       "WC Cleaner",
 			Comment:    "cat by ID",
-			CategoryID: Category{}.IDByName("Groceries"),
+			CategoryID: ep.IDByName("Groceries"),
 		},
 
 		// id 4,5
 		{
 			Name:       "Coffee",
 			Comment:    "two new credit cards",
-			CategoryID: Category{}.IDByName("Snacking"),
+			CategoryID: ep.IDByName("Snacking"),
 			CreditCards: []CreditCard{
 				{Issuer: "VISA", Number: 232233339090},
 				{Issuer: "AMEX", Number: 909090909090},
@@ -50,7 +53,7 @@ func setCompoundLiterals() {
 		{
 			Name:       "Cookie",
 			Comment:    "same new credit card - independent",
-			CategoryID: Category{}.IDByName("Snacking"),
+			CategoryID: ep.IDByName("Snacking"),
 			CreditCards: []CreditCard{
 				{Issuer: "VISA", Number: 232233339090}, // gets duplicated
 			},
@@ -60,13 +63,13 @@ func setCompoundLiterals() {
 		{
 			ID:         uint(13),
 			Name:       "Apple Pie",
-			CategoryID: Category{}.IDByName("Snacking"),
+			CategoryID: ep.IDByName("Snacking"),
 		},
 		{
 			ID:         uint(14),
 			Name:       "Nougat",
 			Comment:    "three new tags",
-			CategoryID: Category{}.IDByName("Snacking"),
+			CategoryID: ep.IDByName("Snacking"),
 			Tags: []Tag{
 				{Name: "Indulgence"},
 				{Name: "Reward"},
@@ -77,7 +80,7 @@ func setCompoundLiterals() {
 			ID:         uint(15),
 			Name:       "Marzipan",
 			Comment:    "three new tags again",
-			CategoryID: Category{}.IDByName("Snacking"),
+			CategoryID: ep.IDByName("Snacking"),
 			Tags: []Tag{
 				{Name: "Indulgence"}, // neither inserted (unique) nor omitted; m-n table contains wrong entry with TagID 0
 				{Name: "Reward"},

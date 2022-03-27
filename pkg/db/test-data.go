@@ -25,7 +25,7 @@ func TestData() {
 	//
 	//
 	for _, cat := range categoriesLit {
-		res := onDuplicateName.Create(&cat)
+		res := onDuplicateNameUpdate.Create(&cat)
 		LogRes(res)
 	}
 
@@ -33,13 +33,13 @@ func TestData() {
 
 	log.Printf("------create-------")
 
-	for idx, entry := range entriesLit {
-		if entry.ID < 1 {
-			entry.ID = uint(idx + 1)
+	for idx, e := range entriesLit {
+		if e.ID < 1 {
+			e.ID = uint(idx + 1)
 		} else {
-			log.Printf("id %v for %v", entry.ID, entry.Name)
+			log.Printf("id %v for %v", e.ID, e.Name)
 		}
-		res := onDuplicateID.Create(&entry)
+		res := onDuplicateIDUpdate.Omit("Tags").Create(&e)
 		LogRes(res)
 		// entry now contains IDs of associations
 		// log.Printf("upserted entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
@@ -84,6 +84,9 @@ func TestData() {
 
 	}
 
+	var ep *Category // this does not suffice to call a method
+	ep = &Category{}
+
 	//
 	log.Printf("------save----------")
 	{
@@ -96,24 +99,23 @@ func TestData() {
 			res := db.Save(&e)
 			LogRes(res)
 		}
-		// ToWarn()
+		ToWarn()
 	}
 	{
 		e := Entry{
 			ID:         uint(16),
 			Name:       "By Save 1",
 			Comment:    "id 16, cat by ID",
-			CategoryID: Category{}.IDByName("Food"),
+			CategoryID: ep.IDByName("Food"),
 		}
 		res := db.Save(&e)
 		LogRes(res)
 	}
 	{
-		// ToInfo()
 		e := Entry{
 			Name:       "By Save 2",
 			Comment:    "cat, ccs, tags by Val",
-			CategoryID: Category{}.IDByName("Food"),
+			CategoryID: ep.IDByName("Food"),
 		}
 		e.CreditCards = []CreditCard{
 			{Issuer: "VISA", Number: 232233339090},
@@ -126,9 +128,67 @@ func TestData() {
 			{Name: "Topor"},
 		}
 
-		res := db.Save(&e)
-		LogRes(res)
-		ToWarn()
+		// save()
+		{
+			// id 17
+			res := db.Save(&e)
+			LogRes(res)
+		}
+		{
+			e.Tags = []Tag{{Name: "Tag-Omitted-1"}}
+			res := db.Omit("Tags").Save(&e)
+			LogRes(res)
+		}
+		{
+			e.Tags = []Tag{{Name: "Tag-Not-Omitted-1"}}
+			res := db.Omit("TagsXX").Save(&e)
+			LogRes(res)
+		}
+		{
+			e.ID = 20 // this causes the credit cards with ID>0 being transferred to the new entry
+
+			// new credit card associations
+			e.CreditCards = []CreditCard{
+				{Issuer: "VISA", Number: 232233339090},
+				{Issuer: "AMEX", Number: 909090909090},
+			}
+
+			e.Comment = " save"
+			{
+				e.Tags = []Tag{{Name: "Tag-Omitted-2"}}
+				res := db.Omit("Tags").Save(&e)
+				LogRes(res)
+
+			}
+			{
+				e.Tags = []Tag{{Name: "Tag-Not-Omitted-2"}}
+				res := db.Omit("TagsXX").Save(&e)
+				LogRes(res)
+			}
+		}
+
+		// create
+		{
+			e.ID = 21 // this causes the credit cards with ID>0 being transferred to the new entry
+
+			// new credit card associations
+			e.CreditCards = []CreditCard{
+				{Issuer: "VISA", Number: 232233339090},
+				{Issuer: "AMEX", Number: 909090909090},
+			}
+
+			e.Comment = " create"
+			{
+				e.Tags = []Tag{{Name: "Tag-Omitted-3"}}
+				res := onDuplicateIDUpdate.Omit("Tags").Create(&e)
+				LogRes(res)
+			}
+			{
+				e.Tags = []Tag{{Name: "Tag-Not-Omitted-3"}}
+				res := onDuplicateIDUpdate.Omit("TagsXX").Create(&e)
+				LogRes(res)
+			}
+		}
 	}
 
 	//

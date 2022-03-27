@@ -114,17 +114,20 @@ Todo:
 
 * gorm.Model incurs a lot of noise
 
-* `create` inserts. On conflict adds DB specific jargon for upsert/merge. 
+* `create` inserts.  
+  Combined with `onConflictUpdate` on conflict it adds DB specific jargon for upsert/merge. 
 
 * `save` first updates by primary key.  
   If no rows are affected, a `select` is issued. If the record does not exist, it gets inserted.
 
 * `create` and `save` do not associate with existing unique assocations.  
-  Instead they fail at creating the same association,  
-  then they create an m:n record with the association ID 0;
+  Instead they fail at creating the same association.  
+  Then they create an m:n record with the association ID 0;
   and without giving any error.
 
+* `Association...Apppend` such as in  
+  `err = db.Model(&e).Association("Tags").Append(tags)`  
+  acts the same way
 
-### Relations / Associations
 
-* 
+* We can suppress this ugly behavior, by using db.Omit("Tags").Save
