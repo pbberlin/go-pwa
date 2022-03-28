@@ -37,7 +37,9 @@ func TestBulk(t *testing.T) {
 	pth := fmt.Sprintf("./app-bucket/server-config/%v.sqlite", testDB)
 	err := os.Remove(pth)
 	if err != nil {
-		t.Fatalf("Cannot remove previous test DB; still opened by SQLiteViewer? \n%v", err)
+		if !os.IsNotExist(err) {
+			t.Fatalf("Cannot remove previous test DB; still opened by SQLiteViewer? \n%v", err)
+		}
 	}
 
 	Init(testDB)
@@ -228,20 +230,20 @@ func TestBulk(t *testing.T) {
 	// dbg.Dump(entries[5:])
 	// dbg.Dump(&entries)
 
-	err = os.MkdirAll("./app-bucket/tmp-tests", 0777)
+	err = os.MkdirAll("./app-bucket/tests", 0777)
 	if err != nil {
-		t.Fatalf("Cannot create ./app-bucket/tmp-tests \n%v", err)
+		t.Fatalf("Cannot create ./app-bucket/tests \n%v", err)
 	}
 
 	got := dbg.Dump2String(&entries)
-	err = os.WriteFile("./app-bucket/tmp-tests/gormtest_got.json", []byte(got), 0777)
+	err = os.WriteFile("./app-bucket/tests/tmp-gormtest_got.json", []byte(got), 0777)
 	if err != nil {
-		t.Fatalf("Cannot write ./app-bucket/tmp-tests/gormtest_got.json \n%v", err)
+		t.Fatalf("Cannot write ./app-bucket/tests/tmp-gormtest_got.json \n%v", err)
 	}
 
-	wntBts, err := os.ReadFile("./app-bucket/tmp-tests/gormtest_wnt.json")
+	wntBts, err := os.ReadFile("./app-bucket/tests/gormtest_wnt.json")
 	if err != nil {
-		t.Fatalf("Cannot read ./app-bucket/tmp-tests/gormtest_got.json \n%v", err)
+		t.Fatalf("Cannot read ./app-bucket/tests/gormtest_wnt.json \n%v", err)
 	}
 	wnt := string(wntBts)
 

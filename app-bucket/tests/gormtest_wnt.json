@@ -1,0 +1,61 @@
+
+	type  *[]db.Entry:
+[
+ 	{
+ 		"Cnt": "ID1: Soap - new cat - name exists"
+ 	},
+ 	{
+ 		"Cnt": "ID2: Toothpaste - new cat - name not exists",
+ 		"Cat": "ID5: Groceries-1648464192"
+ 	},
+ 	{
+ 		"Cnt": "ID3: WC Cleaner - cat by ID",
+ 		"Cat": "ID1: Groceries"
+ 	},
+ 	{
+ 		"Cnt": "ID4: Coffee - two new credit cards",
+ 		"Cat": "ID4: Snacking",
+ 		"CCs": ";   ID1-VISA-232233339090;   ID2-AMEX-909090909090"
+ 	},
+ 	{
+ 		"Cnt": "ID5: Cookie - same new credit card - independent",
+ 		"Cat": "ID4: Snacking",
+ 		"CCs": ";   ID3-VISA-232233339090"
+ 	},
+ 	{
+ 		"Cnt": "ID13: Apple Pie -  saved",
+ 		"Cat": "ID4: Snacking",
+ 		"Tags": ";   ID1-Tag1-0;   ID2-Tag2-13"
+ 	},
+ 	{
+ 		"Cnt": "ID14: Nougat - three new tags",
+ 		"Cat": "ID4: Snacking",
+ 		"Tags": ";   ID3-Tag2-14"
+ 	},
+ 	{
+ 		"Cnt": "ID15: Marzipan - three new tags again",
+ 		"Cat": "ID4: Snacking"
+ 	},
+ 	{
+ 		"Cnt": "ID16: By Save 1 - id 16, cat by ID",
+ 		"Cat": "ID2: Food"
+ 	},
+ 	{
+ 		"Cnt": "ID17: By Save 2 - cat, ccs, tags by Val",
+ 		"Cat": "ID2: Food",
+ 		"CCs": ";   ID4-VISA-232233339090;   ID5-AMEX-909090909090",
+ 		"Tags": ";   ID4-Indulgence-0;   ID5-Reward-0;   ID6-Craving-0;   ID7-Topor-0;   ID8-Tag-Not-Omitted-1-0"
+ 	},
+ 	{
+ 		"Cnt": "ID20: By Save 2 - save",
+ 		"Cat": "ID2: Food",
+ 		"CCs": ";   ID6-VISA-232233339090;   ID7-AMEX-909090909090",
+ 		"Tags": ";   ID9-Tag-Not-Omitted-2-0"
+ 	},
+ 	{
+ 		"Cnt": "ID21: By Save 2 - create",
+ 		"Cat": "ID2: Food",
+ 		"CCs": ";   ID8-VISA-232233339090;   ID9-AMEX-909090909090",
+ 		"Tags": ";   ID10-Tag-Not-Omitted-3-0"
+ 	}
+ ]

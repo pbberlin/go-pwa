@@ -1,10 +1,5 @@
 package db
 
-import (
-	"fmt"
-	"time"
-)
-
 var categoriesTestSeed = []Category{
 	{Name: "Groceries"},
 	{Name: "Food"},
@@ -29,9 +24,10 @@ func dynInitEntriesTestSeed() {
 			Category: Category{Name: "Groceries"}, // fails
 		},
 		{
-			Name:     "Toothpaste",
-			Comment:  "new cat - name not exists",
-			Category: Category{Name: fmt.Sprintf("Groceries-%v", time.Now().Unix())},
+			Name:    "Toothpaste",
+			Comment: "new cat - name not exists",
+			// Category: Category{Name: fmt.Sprintf("Groceries-%v", time.Now().Unix())},
+			Category: Category{Name: "Groceries-2"},
 		},
 		{
 			Name:       "WC Cleaner",
