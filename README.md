@@ -125,9 +125,16 @@ Todo:
   Then they create an m:n record with the association ID 0;
   and without giving any error.
 
+* Notice with 1:n associations; for example credit cards.  
+  If we change the ID of an existing entry, but keep the IDs of the CC associations,  
+  those will be removed from the existing entry and associated with the new one.
+
 * `Association...Apppend` such as in  
   `err = db.Model(&e).Association("Tags").Append(tags)`  
   acts the same way
 
+* We can and should suppress this unhelpful behavior,  
+  by using `onDuplicateIDUpdate.Omit("Tags").Create(&e)` or `...Create`
 
-* We can suppress this ugly behavior, by using db.Omit("Tags").Save
+* In addition, we cannot store any additional data into the m:n table  
+  using the standard funcs

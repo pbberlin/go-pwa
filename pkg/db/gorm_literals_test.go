@@ -5,23 +5,22 @@ import (
 	"time"
 )
 
-var categoriesLit = []Category{
+var categoriesTestSeed = []Category{
 	{Name: "Groceries"},
 	{Name: "Food"},
 	{Name: "Clothing"},
 	{Name: "Snacking"},
 }
 
-var entriesLit []Entry
+var entriesTestSeed []Entry
 
-// required db running, thus cannot be  init()
-func setCompoundLiterals() {
+// requiring db running, thus cannot be init()
+func dynInitEntriesTestSeed() {
 
-	var ep *Category // this does not suffice to call a method
-	ep = &Category{}
+	var pc *Category // works for pointer method ByName
 
 	//
-	entriesLit = []Entry{
+	entriesTestSeed = []Entry{
 
 		// id 1-3
 		{
@@ -37,14 +36,14 @@ func setCompoundLiterals() {
 		{
 			Name:       "WC Cleaner",
 			Comment:    "cat by ID",
-			CategoryID: ep.IDByName("Groceries"),
+			CategoryID: pc.ByName("Groceries"),
 		},
 
 		// id 4,5
 		{
 			Name:       "Coffee",
 			Comment:    "two new credit cards",
-			CategoryID: ep.IDByName("Snacking"),
+			CategoryID: pc.ByName("Snacking"),
 			CreditCards: []CreditCard{
 				{Issuer: "VISA", Number: 232233339090},
 				{Issuer: "AMEX", Number: 909090909090},
@@ -53,7 +52,7 @@ func setCompoundLiterals() {
 		{
 			Name:       "Cookie",
 			Comment:    "same new credit card - independent",
-			CategoryID: ep.IDByName("Snacking"),
+			CategoryID: pc.ByName("Snacking"),
 			CreditCards: []CreditCard{
 				{Issuer: "VISA", Number: 232233339090}, // gets duplicated
 			},
@@ -63,13 +62,13 @@ func setCompoundLiterals() {
 		{
 			ID:         uint(13),
 			Name:       "Apple Pie",
-			CategoryID: ep.IDByName("Snacking"),
+			CategoryID: pc.ByName("Snacking"),
 		},
 		{
 			ID:         uint(14),
 			Name:       "Nougat",
 			Comment:    "three new tags",
-			CategoryID: ep.IDByName("Snacking"),
+			CategoryID: pc.ByName("Snacking"),
 			Tags: []Tag{
 				{Name: "Indulgence"},
 				{Name: "Reward"},
@@ -80,7 +79,7 @@ func setCompoundLiterals() {
 			ID:         uint(15),
 			Name:       "Marzipan",
 			Comment:    "three new tags again",
-			CategoryID: ep.IDByName("Snacking"),
+			CategoryID: pc.ByName("Snacking"),
 			Tags: []Tag{
 				{Name: "Indulgence"}, // neither inserted (unique) nor omitted; m-n table contains wrong entry with TagID 0
 				{Name: "Reward"},

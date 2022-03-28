@@ -7,8 +7,6 @@ import (
 	"runtime/metrics"
 	"sort"
 	"strings"
-
-	"github.com/pbberlin/go-pwa/pkg/db"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -50,13 +48,6 @@ func offline(w http.ResponseWriter, r *http.Request) {
 func plain(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	fmt.Fprintf(w, "This is an example server.\n")
-}
-
-func DBTestData(w http.ResponseWriter, r *http.Request) {
-	db.TestData()
-}
-func DBClose(w http.ResponseWriter, r *http.Request) {
-	db.Close()
 }
 
 func saveJson(w http.ResponseWriter, r *http.Request) {

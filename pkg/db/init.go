@@ -17,6 +17,7 @@ const (
 	colorReset = "\033[0m"
 )
 
+// LogRes stands for log result
 func LogRes(res *gorm.DB) {
 
 	// log.Printf("%2v stmt", res.Statement.SQL.String())
@@ -34,6 +35,7 @@ func LogRes(res *gorm.DB) {
 	// res.Error = nil
 }
 
+// LogErr with source code line and colored terminal message
 func LogErr(err error) {
 	if err != nil {
 		errStr := fmt.Sprintf("  %v", err)
@@ -55,13 +57,20 @@ func ToWarn() {
 	db.Config.Logger = logger.Default.LogMode(logger.Warn)
 }
 
-// Initialize should be called on application start after config load
-func Initialize() {
+// Init should be called on application start after config load;
+// or during tests
+// dbNames is an optional parameter for the db name; default is "main".
+func Init(dbNames ...string) {
 
 	if db != nil {
 		// making sure, gorm.Open is called only once;
 		// to close an existing db, use Close()
 		return
+	}
+
+	dbName := "main"
+	if len(dbNames) > 0 {
+		dbName = dbNames[0]
 	}
 
 	dbCfg := &gorm.Config{
@@ -76,14 +85,17 @@ func Initialize() {
 	}
 
 	var err error
-	db, err = gorm.Open(sqlite.Open("./app-bucket/server-config/main.sqlite"), dbCfg)
+	pth := fmt.Sprintf("./app-bucket/server-config/%v.sqlite", dbName)
+	db, err = gorm.Open(sqlite.Open(pth), dbCfg)
 	if err != nil {
-		panic("failed to connect database")
+		log.Fatalf("failed to connect database: %v; %v", err, pth)
 	}
 
 	// activate EntryTag as custom join table
 	err = db.SetupJoinTable(&Entry{}, "Tags", &EntryTag{})
-	LogErr(err)
+	if err != nil {
+		log.Fatalf("failed to setup join table EntryTag: %v", err)
+	}
 
 	db.AutoMigrate(&Category{})
 	db.AutoMigrate(&CreditCard{})

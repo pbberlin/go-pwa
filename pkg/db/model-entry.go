@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Entry into the app
@@ -43,21 +44,38 @@ type EntryTag struct {
 	// DeletedAt gorm.DeletedAt
 }
 
+var entries = []Entry{} // if len(entries) > 20, switch to map
+
+func loadEntries() {
+	if len(entries) < 1 {
+		// SELECT * FROM entries;
+		res := db.Preload(clause.Associations).Find(&entries)
+		if res.Error != nil {
+			errStr := fmt.Sprintf("  %v", res.Error)
+			log.Print(colorRed, errStr, res.Error, colorReset)
+		} else {
+			log.Printf("%2v entries cached", res.RowsAffected)
+		}
+	}
+}
+
 // ByName returns by name
-func (e Entry) ByName(s string) (Entry, error) {
-	for i := 0; i < len(entriesLit); i++ {
-		if entriesLit[i].Name == s {
-			return entriesLit[i], nil
+func (e *Entry) ByName(s string) (Entry, error) {
+	loadEntries()
+	for i := 0; i < len(entries); i++ {
+		if entries[i].Name == s {
+			return entries[i], nil
 		}
 	}
 	return Entry{}, fmt.Errorf("Entry %q not found", s)
 }
 
 // ByID returns by ID
-func (e Entry) ByID(id uint) (Entry, error) {
-	for i := 0; i < len(entriesLit); i++ {
-		if entriesLit[i].ID == id {
-			return entriesLit[i], nil
+func (e *Entry) ByID(id uint) (Entry, error) {
+	loadEntries()
+	for i := 0; i < len(entries); i++ {
+		if entries[i].ID == id {
+			return entries[i], nil
 		}
 	}
 	return Entry{}, fmt.Errorf("Entry %q not found", id)

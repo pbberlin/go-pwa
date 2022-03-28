@@ -51,7 +51,7 @@ func main() {
 		cfg.Headless(static.PrepareStatic, "/prepare-static")
 	}
 
-	db.Initialize()
+	db.Init()
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", home)
@@ -62,8 +62,6 @@ func main() {
 	mux.HandleFunc("/hello", plain)
 	mux.HandleFunc("/save-json", saveJson)
 	mux.HandleFunc("/golang-metrics", golangMetrics)
-	mux.HandleFunc("/db-test-data", DBTestData)
-	mux.HandleFunc("/db-close", DBClose)
 
 	mux.HandleFunc("/config/load", func(w http.ResponseWriter, r *http.Request) {
 		cfg.Load(w, r)

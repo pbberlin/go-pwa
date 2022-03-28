@@ -20,11 +20,10 @@ type Categories []Category
 
 var categories = []Category{} // if len(categories) > 20, switch to map
 
-// ByName returns by name
-func (c Category) IDByName(s string) int {
-
-	// SELECT * FROM categories;
+func loadCats() {
 	if len(categories) < 1 {
+		// SELECT * FROM categories;
+		// res := db.Preload(clause.Associations).Find(&categories)
 		res := db.Find(&categories)
 		if res.Error != nil {
 			errStr := fmt.Sprintf("  %v", res.Error)
@@ -32,10 +31,12 @@ func (c Category) IDByName(s string) int {
 		} else {
 			log.Printf("%2v categories cached", res.RowsAffected)
 		}
-		// dbg.Dump(categories[:2])
-		// dbg.Dump(categories[len(categories)-2:])
 	}
+}
 
+// ByName returns by name
+func (c *Category) ByName(s string) int {
+	loadCats()
 	for _, cat := range categories {
 		if s == cat.Name {
 			return int(cat.ID)

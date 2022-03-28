@@ -1,61 +1,83 @@
 package db
 
 import (
-	"log"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
 
 	"github.com/pbberlin/dbg"
-
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"gorm.io/gorm/clause"
 )
 
-func TestData() {
-
-	// normally only called once in main() after config load
-	Initialize()
-
-	db := Get()
+//
+// go test  -run ^TestBulk$ github.com/pbberlin/go-pwa/pkg/db -v
+func TestBulk(t *testing.T) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf("Panic 1 caught: %v", err)
+			t.Logf("Panic 1 caught: %v", err)
 			dbg.StackTrace()
 		}
 	}()
 
+	// working dir for test is the package
+	//   => switch to app dir
+	wd, _ := os.Getwd()
+	suffix := filepath.Join("pkg", "db")
+	if strings.HasSuffix(wd, suffix) {
+		os.Chdir(filepath.Join("..", "..")) // stepping up to app dir
+		wd, _ = os.Getwd()
+		t.Logf("new working dir is %v", wd)
+	}
+
+	testDB := "main_test"
+	pth := fmt.Sprintf("./app-bucket/server-config/%v.sqlite", testDB)
+	err := os.Remove(pth)
+	if err != nil {
+		t.Fatalf("Cannot remove previous test DB; still opened by SQLiteViewer? \n%v", err)
+	}
+
+	Init(testDB)
+
+	var pc *Category // for calling methods on categories
+	var pe *Entry    // for calling methods on entries
+
+	db := Get()
+
 	//
 	//
-	for _, cat := range categoriesLit {
+	for _, cat := range categoriesTestSeed {
 		res := onDuplicateNameUpdate.Create(&cat)
 		LogRes(res)
 	}
 
-	setCompoundLiterals()
+	dynInitEntriesTestSeed()
 
-	log.Printf("------create-------")
+	t.Logf("------create-------")
 
-	for idx, e := range entriesLit {
+	for idx, e := range entriesTestSeed {
 		if e.ID < 1 {
 			e.ID = uint(idx + 1)
 		} else {
-			log.Printf("id %v for %v", e.ID, e.Name)
+			t.Logf("id %v for %v", e.ID, e.Name)
 		}
 		res := onDuplicateIDUpdate.Omit("Tags").Create(&e)
 		LogRes(res)
-		// entry now contains IDs of associations
-		// log.Printf("upserted entry %v of %v - %v\n", idx+1, len(entries), entry.Content)
 	}
 
 	//
-	log.Printf("------adding tags----------")
+	t.Logf("------adding tags using Association(...).Append(...)----------")
+	entries = nil // forcing reload
 	{
-		res := db.Preload(clause.Associations).Find(&entriesLit)
-		LogRes(res)
 
 		for _, id := range []uint{13, 14} {
 
-			e, err := Entry{}.ByID(id)
+			e, err := pe.ByID(id)
 			if err != nil {
-				log.Print(err)
+				t.Log(err)
 				continue
 			}
 
@@ -67,7 +89,7 @@ func TestData() {
 			err = db.Model(&e).Association("Tags").Append(tags)
 			// no error on composite index uniqueness failure
 			LogErr(err)
-			log.Printf("entry %2v: tags added to %v \n", id, e.Name)
+			t.Logf("entry %2v: tags added to %v \n", id, e.Name)
 
 			e.UpsertCounter++
 			// res := onDuplicateID.Create(&e)
@@ -79,21 +101,20 @@ func TestData() {
 
 		// for idx, entry := range entries {
 		// 	cnt := db.Model(&entry).Association("Tags").Count()
-		// 	log.Printf("entry %2v: %v has  %v tags\n", idx+1, entry.Content, cnt)
+		// 	t.Logf("entry %2v: %v has  %v tags\n", idx+1, entry.Content, cnt)
 		// }
 
 	}
 
-	var ep *Category // this does not suffice to call a method
-	ep = &Category{}
-
 	//
-	log.Printf("------save----------")
+	t.Logf("------save----------")
+	entries = nil // forcing reload
+
 	{
 		ToInfo()
-		e, err := Entry{}.ByName("Apple Pie")
+		e, err := pe.ByName("Apple Pie")
 		if err != nil {
-			log.Print(err)
+			t.Log(err)
 		} else {
 			e.Comment += " saved"
 			res := db.Save(&e)
@@ -106,7 +127,7 @@ func TestData() {
 			ID:         uint(16),
 			Name:       "By Save 1",
 			Comment:    "id 16, cat by ID",
-			CategoryID: ep.IDByName("Food"),
+			CategoryID: pc.ByName("Food"),
 		}
 		res := db.Save(&e)
 		LogRes(res)
@@ -115,7 +136,7 @@ func TestData() {
 		e := Entry{
 			Name:       "By Save 2",
 			Comment:    "cat, ccs, tags by Val",
-			CategoryID: ep.IDByName("Food"),
+			CategoryID: pc.ByName("Food"),
 		}
 		e.CreditCards = []CreditCard{
 			{Issuer: "VISA", Number: 232233339090},
@@ -153,7 +174,7 @@ func TestData() {
 				{Issuer: "AMEX", Number: 909090909090},
 			}
 
-			e.Comment = " save"
+			e.Comment = "save"
 			{
 				e.Tags = []Tag{{Name: "Tag-Omitted-2"}}
 				res := db.Omit("Tags").Save(&e)
@@ -167,7 +188,7 @@ func TestData() {
 			}
 		}
 
-		// create
+		t.Logf("------create and save again----------")
 		{
 			e.ID = 21 // this causes the credit cards with ID>0 being transferred to the new entry
 
@@ -177,7 +198,7 @@ func TestData() {
 				{Issuer: "AMEX", Number: 909090909090},
 			}
 
-			e.Comment = " create"
+			e.Comment = "create"
 			{
 				e.Tags = []Tag{{Name: "Tag-Omitted-3"}}
 				res := onDuplicateIDUpdate.Omit("Tags").Create(&e)
@@ -200,11 +221,34 @@ func TestData() {
 		dbg.Dump(entries[:5])
 	}
 
-	res := db.Preload(clause.Associations).Find(&entriesLit)
+	// forcing reload
+	res := db.Preload(clause.Associations).Find(&entries)
 	LogRes(res)
 	// dbg.Dump(entries[:4])
 	// dbg.Dump(entries[5:])
-	dbg.Dump(entriesLit)
+	// dbg.Dump(&entries)
+
+	err = os.MkdirAll("./app-bucket/tmp-tests", 0777)
+	if err != nil {
+		t.Fatalf("Cannot create ./app-bucket/tmp-tests \n%v", err)
+	}
+
+	got := dbg.Dump2String(&entries)
+	err = os.WriteFile("./app-bucket/tmp-tests/gormtest_got.json", []byte(got), 0777)
+	if err != nil {
+		t.Fatalf("Cannot write ./app-bucket/tmp-tests/gormtest_got.json \n%v", err)
+	}
+
+	wntBts, err := os.ReadFile("./app-bucket/tmp-tests/gormtest_wnt.json")
+	if err != nil {
+		t.Fatalf("Cannot read ./app-bucket/tmp-tests/gormtest_got.json \n%v", err)
+	}
+	wnt := string(wntBts)
+
+	//
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(got, wnt, false)
+	t.Log(dmp.DiffPrettyText(diffs))
 
 	Close()
 }

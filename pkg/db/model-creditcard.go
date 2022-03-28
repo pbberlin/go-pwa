@@ -8,9 +8,12 @@ type CreditCard struct { // tag unique - belongs to one entry - no multiple uses
 	// gorm.Model
 	ID uint `gorm:"primarykey"`
 
-	Issuer  string `gorm:"index:idx_credit_card,unique"` // unique composite index
-	Number  uint   `gorm:"index:idx_credit_card,unique"` // unique composite index
-	EntryID uint   `gorm:"index:idx_credit_card,unique"` // unique composite index
+	// Issuer  string `gorm:"index:idx_credit_card1,unique;index:idx_credit_card2,unique"` // unique composite indexes over issuer, number - with and without entry ID
+	// Number  uint   `gorm:"index:idx_credit_card1,unique;index:idx_credit_card2,unique"` //
+	// EntryID uint   `gorm:"index:idx_credit_card1,unique"`                               //
+	Issuer  string `gorm:"index:idx_credit_card1,unique"` // unique composite indexes over issuer, number - with and without entry ID
+	Number  uint   `gorm:"index:idx_credit_card1,unique"` //
+	EntryID uint   `gorm:"index:idx_credit_card1,unique"` //
 }
 
 // MarshalJSON only essential data
